@@ -5,6 +5,7 @@
       <nav>
         <RouterLink to="/roster">角色图鉴</RouterLink>
         <RouterLink to="/perks">技能图鉴</RouterLink>
+        <RouterLink to="/addons">附加品</RouterLink>
         <RouterLink to="/builds">构筑推荐</RouterLink>
         <RouterLink to="/my-builds">我的构筑</RouterLink>
         <RouterLink to="/maps">地图查询</RouterLink>
@@ -60,6 +61,7 @@ function focusFirst() {
 function go(hit) {
   const target =
     hit.kind === "技能" ? "/perks" :
+    hit.kind === "附加品" ? "/addons" :
     hit.kind === "地图" || hit.kind === "领域" ? "/maps" :
     "/roster";
   router.push({ path: target, query: { focus: hit.id } });

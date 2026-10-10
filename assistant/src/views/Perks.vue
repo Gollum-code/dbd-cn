@@ -14,9 +14,10 @@
         <option value="survivor">逃生者</option>
       </select>
     </div>
+    <p class="sub count">共 {{ filtered.length }} 个技能{% if pages > 1 %} · 第 {{ page }}/{{ pages }} 页{% endif %}</p>
     <div class="grid" ref="grid">
       <div
-        v-for="p in filtered"
+        v-for="p in paged"
         :key="p.id"
         class="perk-card"
         :ref="(el) => setCardRef(p.id, el)"
@@ -44,6 +45,13 @@
         </div>
       </div>
     </div>
+    <p v-if="!paged.length" class="hint">没有匹配的技能。</p>
+
+    <nav v-if="pages > 1" class="pager">
+      <button :disabled="page <= 1" @click="page--">← 上一页</button>
+      <span>{{ page }} / {{ pages }}</span>
+      <button :disabled="page >= pages" @click="page++">下一页 →</button>
+    </nav>
   </div>
 </template>
 
@@ -60,6 +68,9 @@ const roleFilter = ref("");
 const icons = reactive({});
 const focusId = ref("");
 const cardEls = reactive({});
+const page = ref(1);
+
+const PER_PAGE = 80;
 
 const route = useRoute();
 
@@ -83,13 +94,15 @@ function setCardRef(id, el) {
 async function applyFocus() {
   const f = route.query.focus;
   if (!f) return;
-  focusId.value = f;
-  // ensure the focused card is visible (clear filters that would hide it)
+  // reveal the focused card: clear filters that hide it, then page to it
   if (!filtered.value.some((p) => p.id === f)) {
     kw.value = "";
     tagFilter.value = "";
     roleFilter.value = "";
   }
+  const idx = filtered.value.findIndex((p) => p.id === f);
+  if (idx >= 0) page.value = Math.floor(idx / PER_PAGE) + 1;
+  focusId.value = f;
   await nextTick();
   const el = cardEls[f];
   if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -126,6 +139,14 @@ const filtered = computed(() => {
   }
   return list;
 });
+
+const pages = computed(() => Math.max(1, Math.ceil(filtered.value.length / PER_PAGE)));
+const paged = computed(() => {
+  const start = (page.value - 1) * PER_PAGE;
+  return filtered.value.slice(start, start + PER_PAGE);
+});
+
+watch([kw, tagFilter, roleFilter], () => (page.value = 1));
 
 function tags(p) {
   try { return JSON.parse(p.tags || "[]"); } catch { return []; }
@@ -176,6 +197,16 @@ function ownerOf(p) {
   margin: 0.3rem 0; display: -webkit-box; -webkit-line-clamp: 3;
   -webkit-box-orient: vertical; overflow: hidden;
 }
+.pager {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0.8rem; margin-top: 1.2rem;
+}
+.pager button {
+  padding: 0.4rem 0.9rem; border-radius: 8px; border: 1px solid var(--border);
+  background: #101116; color: var(--text); cursor: pointer;
+}
+.pager button:disabled { opacity: 0.4; cursor: default; }
+.count { color: var(--muted); font-size: 0.85rem; }
 .tags { display: flex; flex-wrap: wrap; gap: 0.3rem; }
 .tag { background: #101116; border: 1px solid var(--border); border-radius: 999px; padding: 0.05rem 0.5rem; font-size: 0.72rem; color: var(--muted); }
 </style>

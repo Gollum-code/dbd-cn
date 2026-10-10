@@ -43,12 +43,16 @@ const DEMO_PLAYSTYLES = ["控场压制", "追逐击倒", "信息/侦查", "守�
 const DEMO_BUILDS = [
   { id: 1, character: "K01", role: "killer", perks: '["agitation","brutalStrength","ironGrasp"]', addons: "[]", playstyle: "控场压制", rating: 0, source: "default" },
 ];
+const DEMO_ADDONS = [
+  { id: "rustedJaws", name_en: "Rusted Jaws", name_zh: "生锈钳口", owner: "K01", rarity: "罕见", rarity_en: "Uncommon", tags: '["DeepWound"]', effect: "被捕兽夹夹伤的逃生者会陷入深度伤口状态，持续 70 秒。", icon: null },
+  { id: "tarBottle", name_en: "Tar Bottle", name_zh: "焦油瓶", owner: "K01", rarity: "稀有", rarity_en: "Rare", tags: '["TrapDisguise"]', effect: "一种黑色、哑光且有黏性的物质，涂抹在捕兽夹上能使其不那么显眼。", icon: null },
+];
 
 function demoFallback(cmd, args) {
   switch (cmd) {
     case "get_characters": return Promise.resolve(DEMO_CHARS);
     case "get_perks": return Promise.resolve(DEMO_PERKS);
-    case "get_addons": return Promise.resolve([]);
+    case "get_addons": return Promise.resolve(DEMO_ADDONS);
     case "get_maps": return Promise.resolve(DEMO_MAPS);
     case "get_patches": return Promise.resolve([]);
     case "get_sync_info": return Promise.resolve({ last_sync: null, source: null, latest_patch: null });

@@ -2,9 +2,10 @@
 {% block title %}更新日志 - DBD 中文 Wiki{% endblock %}
 {% block content %}
 <h1>版本更新日志</h1>
-<p class="sub">来自 wiki.gg 的补丁记录 · 最新 {{ patches|length }} 个版本</p>
+<p class="sub">共 {{ total }} 个补丁 · 第 {{ page }}/{{ pages }} 页</p>
+
 <div class="patch-list">
-  {% for p in patches %}
+  {% for p in page_patches %}
   <div class="patch-card">
     <div class="patch-head">
       <span class="patch-no">{{ p.patch }}</span>
@@ -17,4 +18,12 @@
   <p>暂无数据。</p>
   {% endfor %}
 </div>
+
+<nav class="pager">
+  {% if prev_url %}<a href="{{ prev_url }}">← 上一页</a>{% endif %}
+  {% for l in page_links %}
+    {% if l.current %}<span class="cur">{{ l.n }}</span>{% else %}<a href="{{ l.url }}">{{ l.n }}</a>{% endif %}
+  {% endfor %}
+  {% if next_url %}<a href="{{ next_url }}">下一页 →</a>{% endif %}
+</nav>
 {% endblock %}

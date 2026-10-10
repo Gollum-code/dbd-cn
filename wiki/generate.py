@@ -107,7 +107,7 @@ def render_site(
     addons = _rows(conn, "SELECT * FROM addons ORDER BY name_en")
     maps = _rows(conn, "SELECT * FROM maps ORDER BY name_en")
     realms = _rows(conn, "SELECT * FROM realms ORDER BY id")
-    patches = _rows(conn, "SELECT * FROM patches ORDER BY id DESC LIMIT 50")
+    patches = _rows(conn, "SELECT * FROM patches ORDER BY id DESC")
     builds = _rows(conn, "SELECT * FROM builds ORDER BY rating DESC")
     sync = dict(conn.execute("SELECT key,value FROM sync_meta").fetchall())
     char_by_id = {c["id"]: c for c in killers + survivors}
@@ -178,13 +178,24 @@ def render_site(
                "黎明杀机地图与领域资料：钩点、图腾点、地图尺寸版本变化。")))
     sitemap.append(page)
 
-    # changelog (patches)
-    page = out_dir / "changelog.html"
-    _w(page, env.get_template("changelog.html").render(
-        patches=patches, sync=sync, base=_base_url(page),
-        **_seo("版本更新日志 - 黎明杀机中文Wiki",
-               "黎明杀机版本更新日志：最新补丁说明、PTB 测试服信息。")))
+    # 站内搜索（索引单独成文件，便于缓存/并行加载）
+    search_index = _build_search_index(killers + survivors, perks, addons, maps, realms)
+    index_path = out_dir / "static" / "search-index.json"
+    index_path.parent.mkdir(parents=True, exist_ok=True)
+    index_path.write_text(
+        json.dumps(search_index, ensure_ascii=False), encoding="utf-8"
+    )
+    page = out_dir / "search.html"
+    _w(page, env.get_template("search.html").render(
+        index={"total": len(search_index)},
+        index_url=_base_url(page) + "static/search-index.json",
+        sync=sync, base=_base_url(page),
+        **_seo("搜索 - DBD 中文 Wiki",
+               "在黎明杀机中文 Wiki 中搜索角色、技能、附加品与地图，支持中文效果关键词。")))
     sitemap.append(page)
+
+    # changelog (patches) - paginated
+    _write_paginated_changelog(out_dir, patches, sitemap, per_page=50)
 
     # builds (from DB; community section)
     page = out_dir / "builds.html"
@@ -213,6 +224,102 @@ def render_site(
     counts = {"pages": sum(1 for _ in out_dir.rglob("*.html")),
               "characters": len(killers) + len(survivors), "perks": len(perks)}
     return counts
+
+
+def _body(text: str | None, cap: int = 200) -> str:
+    """Collapse + cap a long body so the embedded index stays small."""
+    if not text:
+        return ""
+    return " ".join(text.split())[:cap]
+
+
+def _build_search_index(chars, perks, addons, maps, realms) -> list[dict]:
+    """Flat client-side search index: one row per searchable entity.
+
+    Long bodies (lore / effects) are capped so the embedded index stays lean.
+    """
+    rows: list[dict] = []
+    for c in chars:
+        rows.append({
+            "kind": "角色",
+            "id": c["id"],
+            "name_zh": c.get("name_zh") or "",
+            "name_en": c.get("name_en") or "",
+            "url": f"character/{c['id']}.html",
+            "body": _body(c.get("lore")),
+        })
+    for p in perks:
+        rows.append({
+            "kind": "技能",
+            "id": p["id"],
+            "name_zh": p.get("name_zh") or "",
+            "name_en": p.get("name_en") or "",
+            "url": f"perk/{p['id']}.html",
+            "body": _body(p.get("description")),
+        })
+    for a in addons:
+        rows.append({
+            "kind": "附加品",
+            "id": a["id"],
+            "name_zh": a.get("name_zh") or "",
+            "name_en": a.get("name_en") or "",
+            "url": f"addons.html#{a['id']}",
+            "body": _body(a.get("effect")),
+        })
+    for m in maps:
+        rows.append({
+            "kind": "地图",
+            "id": m["id"],
+            "name_zh": m.get("name_zh") or "",
+            "name_en": m.get("name_en") or "",
+            "url": "maps.html",
+            "body": "",
+        })
+    for r in realms:
+        rows.append({
+            "kind": "领域",
+            "id": str(r["id"]),
+            "name_zh": r.get("name_zh") or "",
+            "name_en": r.get("name_en") or "",
+            "url": "maps.html",
+            "body": _body(r.get("location")),
+        })
+    return rows
+
+
+def _write_paginated_changelog(out_dir: Path, patches, sitemap, per_page: int = 50):
+    """Render the patch changelog split across pages."""
+    templates_dir = Path(__file__).parent / "templates"
+    env = Environment(
+        loader=FileSystemLoader(templates_dir),
+        autoescape=select_autoescape(["html", "xml"]),
+    )
+    total = len(patches)
+    pages = max(1, (total + per_page - 1) // per_page)
+    for n in range(1, pages + 1):
+        chunk = patches[(n - 1) * per_page : n * per_page]
+        page = out_dir / ("changelog.html" if n == 1 else f"changelog-{n}.html")
+        base = _base_url(page)
+        page_links = [
+            {
+                "n": i,
+                "url": base + ("changelog.html" if i == 1 else f"changelog-{i}.html"),
+                "current": i == n,
+            }
+            for i in range(1, pages + 1)
+        ]
+        _w(page, env.get_template("changelog.html").render(
+            page_patches=chunk,
+            total=total,
+            page=n,
+            pages=pages,
+            page_links=page_links,
+            prev_url=(base + f"changelog-{n-1}.html" if n > 1 else ""),
+            next_url=(base + f"changelog-{n+1}.html" if n < pages else ""),
+            base=base,
+            sync={},
+        ))
+        sitemap.append(page)
 
 
 def _write_paginated_addons(out_dir: Path, addons, killers, survivors, sitemap, per_page: int = 150):

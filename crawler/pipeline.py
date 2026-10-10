@@ -182,12 +182,16 @@ def normalise_addons(addons: dict[str, dict]) -> list[dict[str, Any]]:
         if row.get("unused"):
             continue
         rarity_en = tr.RARITY_BY_LEVEL.get(row.get("rarity", 0), "Common")
+        # Killers' add-ons are keyed by `killer = <killer id>` in the wiki
+        # datatable (there is no charType/character column).  Survivor item
+        # add-ons carry no owner at all.
+        killer_id = row.get("killer")
+        owner = f"K{killer_id:02d}" if isinstance(killer_id, int) else ""
         out.append({
             "id": _slugify(name_en),
             "name_en": name_en,
             "name_zh": translate_all(name_en),
-            "owner": f"{str(row.get('charType','')).upper()}{row.get('character',0):02d}"
-            if row.get("charType") else "",
+            "owner": owner,
             "rarity": tr.translate_term(rarity_en),
             "rarity_en": rarity_en,
             "effect": "",

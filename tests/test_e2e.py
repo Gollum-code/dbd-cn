@@ -106,6 +106,21 @@ def test_pipeline_to_db(sample, tmp_path):
     conn.close()
 
 
+def test_addon_owner_links_to_killer(sample):
+    """Add-ons use the wiki's `killer = <id>` field (not charType/character)."""
+    addon = sample["addons"][0]
+    assert addon["owner"] == "K01"
+    assert addon["name_zh"] == "焦油瓶"
+
+
+def test_unowned_item_addon():
+    """Item add-ons (no killer field) keep an empty owner."""
+    from crawler.pipeline import normalise_addons
+
+    out = normalise_addons({"Flashlight": {"id": 1, "rarity": 1}})
+    assert out[0]["owner"] == ""
+
+
 def test_db_to_wiki_full_render(sample, tmp_path):
     """The wiki generator renders a full site from the sample database."""
     from wiki.generate import render_site
