@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import sqlite3
 from typing import Any, Callable
 
@@ -139,6 +140,8 @@ def enrich_patch_notes(client: WikiClient, conn: sqlite3.Connection, *, recent: 
     rows = conn.execute(
         "SELECT id, patch FROM patches ORDER BY id DESC LIMIT ?", (recent,)
     ).fetchall()
+    if client is None:
+        client = WikiClient()
     updated = 0
     for pid, patch in rows:
         try:
@@ -156,22 +159,42 @@ def enrich_patch_notes(client: WikiClient, conn: sqlite3.Connection, *, recent: 
 
 
 def _patch_page_summary(page: str) -> str:
-    """Summarise a rendered 'Patch x.y.z' page into a short notes string."""
+    """Summarise a rendered 'Patch x.y.z' page into a short notes string.
+
+    The page has a 'Change Log' section whose bullet list holds every buff /
+    nerf / rework line.  We take those bullets; if none are found we fall back
+    to the page body.
+    """
     from lxml import html as _lhtml
     from .html_extract import _clean_text
 
     root = _lhtml.fromstring(page)
-    # skip table-of-contents block if present
     for toc in root.xpath("//div[contains(@class,'toc')]"):
         toc.getparent().remove(toc)
+
     bullets: list[str] = []
-    for li in root.xpath("//div[@class='mw-parser-output']//li | //div[@class='mw-parser-output']//p"):
+    collecting = False
+    for el in root.iter():
+        if el.tag in ("h2", "h3"):
+            t = " ".join((el.text_content() or "").split())
+            if "change log" in t.lower() or "变更" in t:
+                collecting = True
+                continue
+            if collecting and el.tag == "h2":
+                break
+        if collecting and el.tag == "li":
+            t = _clean_text(el)
+            # skip sub-bullets and navigation noise
+            if t and len(t) > 12:
+                bullets.append(t)
+            if len(bullets) >= 8:
+                break
+    if bullets:
+        return " | ".join(bullets)
+    # fallback: bullets mentioning change keywords anywhere on the page
+    for li in root.xpath("//li"):
         t = _clean_text(li)
-        if not t or t.startswith("Contents"):
-            continue
-        if any(k in t for k in ("Buff", "Nerf", "Rework", "Added", "Adjusted", "Changed",
-                                "Fixed", "Updated", "Quality of Life", "removed", "added",
-                                "Hotfix")):
+        if t and re.search(r"\b(Buff|Nerf|Rework|Added|Fixed|Adjusted|Removed)\b", t):
             bullets.append(t)
         if len(bullets) >= 8:
             break

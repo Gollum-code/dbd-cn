@@ -12,21 +12,21 @@
 <meta property="og:locale" content="zh_CN">
 <link rel="canonical" href="{{ canonical or '' }}">
 <title>{% block title %}DBD 中文 Wiki{% endblock %}</title>
-<link rel="stylesheet" href="{{ base or '../' }}/static/style.css">
+<link rel="stylesheet" href="{{ base | default('', true) }}static/style.css">
 </head>
 <body>
 <header class="site-header">
-  <a class="brand" href="{{ base or '' }}/index.html">黎明杀机 <span>中文 Wiki</span></a>
+  <a class="brand" href="{{ base | default('', true) }}index.html">黎明杀机 <span>中文 Wiki</span></a>
   <nav>
-    <a href="{{ base or '' }}/index.html">首页</a>
-    <a href="{{ base or '' }}/roster/killers.html">杀手</a>
-    <a href="{{ base or '' }}/roster/survivors.html">逃生者</a>
-    <a href="{{ base or '' }}/perks.html">技能</a>
-    <a href="{{ base or '' }}/addons.html">附加品</a>
-    <a href="{{ base or '' }}/maps.html">地图</a>
-    <a href="{{ base or '' }}/changelog.html">更新日志</a>
-    <a href="{{ base or '' }}/builds.html">构筑</a>
-    <a href="{{ base or '' }}/search.html">搜索</a>
+    <a href="{{ base | default('', true) }}index.html">首页</a>
+    <a href="{{ base | default('', true) }}roster/killers.html">杀手</a>
+    <a href="{{ base | default('', true) }}roster/survivors.html">逃生者</a>
+    <a href="{{ base | default('', true) }}perks.html">技能</a>
+    <a href="{{ base | default('', true) }}addons.html">附加品</a>
+    <a href="{{ base | default('', true) }}maps.html">地图</a>
+    <a href="{{ base | default('', true) }}changelog.html">更新日志</a>
+    <a href="{{ base | default('', true) }}builds.html">构筑</a>
+    <a href="{{ base | default('', true) }}search.html">搜索</a>
   </nav>
 </header>
 <main class="container">

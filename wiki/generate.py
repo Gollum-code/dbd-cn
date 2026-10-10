@@ -43,9 +43,14 @@ def _rows(conn: sqlite3.Connection, sql: str, params=()) -> list[dict]:
     return [dict(r) for r in conn.execute(sql, params)]
 
 
-def _base_url(p: Path) -> str:
-    """Relative path prefix to the site root from a generated page."""
-    return "../" * (len(p.parts) - 1)
+def _base_url(p: Path, out_dir: Path) -> str:
+    """Relative path prefix from a generated page back to the site root.
+
+    e.g. index.html / addons-2.html -> ""  (already at root)
+         character/K01.html          -> "../"
+    """
+    rel = p.relative_to(out_dir)
+    return "../" * (len(rel.parts) - 1)
 
 
 def _seo(title: str, desc: str, keywords: str = "", canonical: str = "") -> dict:
@@ -118,7 +123,7 @@ def render_site(
     page = out_dir / "index.html"
     _w(page, env.get_template("index.html").render(
         killers=killers, survivors=survivors, perks=perks, maps=maps, realms=realms,
-        patches=patches, sync=sync, base=_base_url(page),
+        patches=patches, sync=sync, base=_base_url(page, out_dir),
         **_seo("黎明杀机中文Wiki - 角色/技能/附加品/地图资料站",
                "黎明杀机（Dead by Daylight）中文资料站：杀手与逃生者图鉴、技能大全、附加品、地图领域、构筑推荐。每周自动同步官方数据。",
                "黎明杀机,黎明杀机wiki,DBD,Dead by Daylight,杀手,逃生者,技能,附加品,地图")))
@@ -129,7 +134,7 @@ def render_site(
         page = out_dir / f"roster/{role}s.html"
         _w(page, env.get_template("roster.html").render(
             role=role, title=f"{name}图鉴", chars=rows, sync=sync,
-            base=_base_url(page),
+            base=_base_url(page, out_dir),
             **_seo(f"{name}图鉴 - 黎明杀机中文Wiki",
                    f"黎明杀机『{name}』全角色图鉴：难度/移速/恐惧范围/背面故事与专属技能。",
                    "黎明杀机,DBD,杀手,逃生者,角色图鉴")))
@@ -145,7 +150,7 @@ def render_site(
         page = out_dir / f"character/{ch['id']}.html"
         _w(page, env.get_template("character.html").render(
             ch=ch, perks=owned_perks, addons=owned_addons, realm=realm, sync=sync,
-            base=_base_url(page),
+            base=_base_url(page, out_dir),
             **_seo(f"{name} - 黎明杀机中文Wiki",
                    f"黎明杀机角色『{name}』资料：{'背景故事、能力与' if ch['role']=='killer' else ''}专属技能、附加品。")) )
         sitemap.append(page)
@@ -153,7 +158,7 @@ def render_site(
     # perks list + detail
     page = out_dir / "perks.html"
     _w(page, env.get_template("perks.html").render(
-        perks=perks, killers=killers, survivors=survivors, sync=sync, base=_base_url(page),
+        perks=perks, killers=killers, survivors=survivors, sync=sync, base=_base_url(page, out_dir),
         **_seo("技能大全 - 黎明杀机中文Wiki",
                "黎明杀机全部技能中文资料：技能描述、三档数值、所属角色。支持中文检索。",
                "黎明杀机,DBD,技能,技能大全,技能图鉴")))
@@ -162,7 +167,7 @@ def render_site(
         pname = p["name_zh"] or p["name_en"]
         page = out_dir / f"perk/{p['id']}.html"
         _w(page, env.get_template("perk.html").render(
-            p=p, owner=char_by_id.get(p["owner"]), sync=sync, base=_base_url(page),
+            p=p, owner=char_by_id.get(p["owner"]), sync=sync, base=_base_url(page, out_dir),
             **_seo(f"{pname} - 黎明杀机中文Wiki",
                    f"黎明杀机技能『{pname}』（{p['name_en']}）：效果描述与三档数值。")))
         sitemap.append(page)
@@ -173,7 +178,7 @@ def render_site(
     # maps
     page = out_dir / "maps.html"
     _w(page, env.get_template("maps.html").render(
-        maps=maps, realms=realms, sync=sync, base=_base_url(page),
+        maps=maps, realms=realms, sync=sync, base=_base_url(page, out_dir),
         **_seo("地图与领域 - 黎明杀机中文Wiki",
                "黎明杀机地图与领域资料：钩点、图腾点、地图尺寸版本变化。")))
     sitemap.append(page)
@@ -188,8 +193,8 @@ def render_site(
     page = out_dir / "search.html"
     _w(page, env.get_template("search.html").render(
         index={"total": len(search_index)},
-        index_url=_base_url(page) + "static/search-index.json",
-        sync=sync, base=_base_url(page),
+        index_url=_base_url(page, out_dir) + "static/search-index.json",
+        sync=sync, base=_base_url(page, out_dir),
         **_seo("搜索 - DBD 中文 Wiki",
                "在黎明杀机中文 Wiki 中搜索角色、技能、附加品与地图，支持中文效果关键词。")))
     sitemap.append(page)
@@ -200,7 +205,7 @@ def render_site(
     # builds (from DB; community section)
     page = out_dir / "builds.html"
     _w(page, env.get_template("builds.html").render(
-        builds=builds, char_by_id=char_by_id, sync=sync, base=_base_url(page),
+        builds=builds, char_by_id=char_by_id, sync=sync, base=_base_url(page, out_dir),
         **_seo("构筑推荐 - 黎明杀机中文Wiki",
                "黎明杀机社区构筑推荐：杀手/逃生者主流玩法技能搭配。")))
     sitemap.append(page)
@@ -287,6 +292,11 @@ def _build_search_index(chars, perks, addons, maps, realms) -> list[dict]:
     return rows
 
 
+def _page_name(stem: str, n: int) -> str:
+    """File name for page n of a paginated section (page 1 has no suffix)."""
+    return f"{stem}.html" if n == 1 else f"{stem}-{n}.html"
+
+
 def _write_paginated_changelog(out_dir: Path, patches, sitemap, per_page: int = 50):
     """Render the patch changelog split across pages."""
     templates_dir = Path(__file__).parent / "templates"
@@ -299,7 +309,7 @@ def _write_paginated_changelog(out_dir: Path, patches, sitemap, per_page: int = 
     for n in range(1, pages + 1):
         chunk = patches[(n - 1) * per_page : n * per_page]
         page = out_dir / ("changelog.html" if n == 1 else f"changelog-{n}.html")
-        base = _base_url(page)
+        base = _base_url(page, out_dir)
         page_links = [
             {
                 "n": i,
@@ -314,8 +324,8 @@ def _write_paginated_changelog(out_dir: Path, patches, sitemap, per_page: int = 
             page=n,
             pages=pages,
             page_links=page_links,
-            prev_url=(base + f"changelog-{n-1}.html" if n > 1 else ""),
-            next_url=(base + f"changelog-{n+1}.html" if n < pages else ""),
+            prev_url=(base + _page_name("changelog", n - 1) if n > 1 else ""),
+            next_url=(base + _page_name("changelog", n + 1) if n < pages else ""),
             base=base,
             sync={},
         ))
@@ -341,7 +351,7 @@ def _write_paginated_addons(out_dir: Path, addons, killers, survivors, sitemap, 
     for n in range(1, pages + 1):
         chunk = addons[(n - 1) * per_page : n * per_page]
         page = out_dir / ("addons.html" if n == 1 else f"addons-{n}.html")
-        base = _base_url(page)
+        base = _base_url(page, out_dir)
         page_links = [
             {
                 "n": i,
@@ -358,8 +368,8 @@ def _write_paginated_addons(out_dir: Path, addons, killers, survivors, sitemap, 
             page=n,
             pages=pages,
             page_links=page_links,
-            prev_url=(base + f"addons-{n-1}.html" if n > 1 else ""),
-            next_url=(base + f"addons-{n+1}.html" if n < pages else ""),
+            prev_url=(base + _page_name("addons", n - 1) if n > 1 else ""),
+            next_url=(base + _page_name("addons", n + 1) if n < pages else ""),
             base=base,
             sync={},
         ))
