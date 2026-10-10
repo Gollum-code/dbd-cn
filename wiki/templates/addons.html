@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}附加品 - DBD 中文 Wiki{% endblock %}
+{% block content %}
+<h1>附加品</h1>
+<p class="sub">共 {{ total }} 个附加品 · 第 {{ page }}/{{ pages }} 页</p>
+
+<table class="table">
+  <thead><tr><th>名称</th><th>稀有度</th><th>效果</th><th>所属</th></tr></thead>
+  <tbody>
+  {% for a in page_addons %}
+  <tr>
+    <td>{% if a.icon %}<img class="addon-icon" src="{{ a.icon|icon_url(base) }}" alt="{{ a.name_en }}" loading="lazy">{% endif %} {{ a.name_zh or a.name_en }} <em>{{ a.name_en }}</em></td>
+    <td><span class="rarity r{{ a.rarity_en|lower }}">{{ a.rarity or a.rarity_en }}</span></td>
+    <td class="effect">{% if a.effect %}{{ a.effect }}{% endif %}</td>
+    <td>
+      {% set oc = (killers + survivors)|selectattr('id','equalto', a.owner)|first %}
+      {% if oc %}<a href="{{ base }}character/{{ oc.id }}.html">{{ oc.name_zh or oc.name_en }}</a>{% else %}{{ a.owner }}{% endif %}
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="4">暂无数据。</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<nav class="pager">
+  {% if prev_url %}<a href="{{ prev_url }}">← 上一页</a>{% endif %}
+  {% for p in page_links %}
+    {% if p.current %}<span class="cur">{{ p.n }}</span>{% else %}<a href="{{ p.url }}">{{ p.n }}</a>{% endif %}
+  {% endfor %}
+  {% if next_url %}<a href="{{ next_url }}">下一页 →</a>{% endif %}
+</nav>
+{% endblock %}

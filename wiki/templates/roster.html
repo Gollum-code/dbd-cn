@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} - DBD 中文 Wiki{% endblock %}
+{% block content %}
+<h1>{{ title }}</h1>
+<div class="grid">
+  {% for c in chars %}
+  <a class="char-card" href="../character/{{ c.id }}.html">
+    <div class="char-avatar">
+      {% if c.icon %}<img src="{{ c.icon|icon_url(base) }}" alt="{{ c.name_en }}" loading="lazy">{% else %}{{ c.name_zh or c.name_en }}{% endif %}
+    </div>
+    <div class="char-meta">
+      <div class="name">{{ c.name_zh or c.name_en }}</div>
+      <div class="en">{{ c.name_en }}</div>
+      {% if c.difficulty %}<div class="tag">难度 {{ c.difficulty }}</div>{% endif %}
+    </div>
+  </a>
+  {% else %}
+  <p>暂无数据。</p>
+  {% endfor %}
+</div>
+{% endblock %}

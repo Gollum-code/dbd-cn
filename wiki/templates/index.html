@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}黎明杀机 中文 Wiki - 首页{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>黎明杀机中文资料站</h1>
+  <p class="sub">免费 · 开源 · 每周自动同步官方数据</p>
+  {% if patches %}
+  <div class="patch-banner">
+    最新版本 <strong>{{ patches[0].patch }}</strong>
+    {% if patches[0].rdate %}<span class="date">{{ patches[0].rdate }}</span>{% endif %}
+    {% if patches[0].ptb %}<span class="ptb">PTB</span>{% endif %}
+    <a href="changelog.html">查看更新日志 →</a>
+  </div>
+  {% endif %}
+  <div class="stats">
+    <div class="stat"><span>{{ killers|length }}</span>杀手</div>
+    <div class="stat"><span>{{ survivors|length }}</span>逃生者</div>
+    <div class="stat"><span>{{ perks|length }}</span>技能</div>
+    <div class="stat"><span>{{ realms|length }}</span>领域</div>
+  </div>
+</section>
+
+<section class="cards">
+  <a class="card" href="roster/killers.html">
+    <h2>杀手图鉴</h2><p>难度 / 移速 / 恐惧范围 / 能力</p>
+  </a>
+  <a class="card" href="roster/survivors.html">
+    <h2>逃生者图鉴</h2><p>背景 / 特长 / 专属技能</p>
+  </a>
+  <a class="card" href="perks.html">
+    <h2>技能大全</h2><p>中文描述 / 三档数值 / 所属角色</p>
+  </a>
+  <a class="card" href="addons.html">
+    <h2>附加品</h2><p>中文效果 / 稀有度</p>
+  </a>
+  <a class="card" href="maps.html">
+    <h2>地图与领域</h2><p>请用地形 / 领域汇总</p>
+  </a>
+  <a class="card" href="builds.html">
+    <h2>构筑推荐</h2><p>社区构筑（中文）</p>
+  </a>
+</section>
+{% endblock %}

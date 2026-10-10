@@ -1,0 +1,9 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "主窗口默认能力：访问核心 Tauri API 与数据库命令",
+  "windows": ["main"],
+  "permissions": [
+    "core:default"
+  ]
+}

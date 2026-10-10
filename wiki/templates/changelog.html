@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}更新日志 - DBD 中文 Wiki{% endblock %}
+{% block content %}
+<h1>版本更新日志</h1>
+<p class="sub">来自 wiki.gg 的补丁记录 · 最新 {{ patches|length }} 个版本</p>
+<div class="patch-list">
+  {% for p in patches %}
+  <div class="patch-card">
+    <div class="patch-head">
+      <span class="patch-no">{{ p.patch }}</span>
+      {% if p.ptb %}<span class="ptb">PTB</span>{% endif %}
+      <span class="date">{{ p.rdate }}</span>
+    </div>
+    {% if p.notes %}<p class="notes">{{ p.notes }}</p>{% endif %}
+  </div>
+  {% else %}
+  <p>暂无数据。</p>
+  {% endfor %}
+</div>
+{% endblock %}

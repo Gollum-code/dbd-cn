@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}构筑推荐 - DBD 中文 Wiki{% endblock %}
+{% block content %}
+<h1>社区构筑推荐</h1>
+<p class="sub">由社区提交 · 数据保存在本地数据库中</p>
+<div class="build-list">
+  {% for b in builds %}
+  {% set ch = char_by_id.get(b.character) %}
+  <div class="build-card">
+    <div class="build-head">
+      <span class="role-badge {{ b.role }}">{{ '杀手' if b.role == 'killer' else '逃生者' }}</span>
+      {% if ch %}<strong>{{ ch.name_zh or ch.name_en }}</strong>{% else %}{{ b.character }}{% endif %}
+      {% if b.source %}<span class="src">{{ '内置' if b.source == 'default' else '社区' }}</span>{% endif %}
+      {% if b.rating %}<span class="rating">★ {{ b.rating }}</span>{% endif %}
+    </div>
+    {% set pids = b.perks|fromjson %}
+    <div class="build-perks">
+      {% for pid in pids %}
+      <span class="perk-chip">{{ pid }}</span>
+      {% endfor %}
+    </div>
+    {% if b.playstyle %}<p class="playstyle">{{ b.playstyle }}</p>{% endif %}
+  </div>
+  {% else %}
+  <p>暂无构筑。可以通过助手软件添加构筑。</p>
+  {% endfor %}
+</div>
+{% endblock %}

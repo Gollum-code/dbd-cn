@@ -1,0 +1,31 @@
+[project]
+name = "dbd-cn"
+version = "0.1.0"
+description = "黎明杀机（DBD）中文 Wiki + 助手：爬虫 → 中文 SQLite → 静态 Wiki + Tauri 助手"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "dbd-cn contributors" }]
+dependencies = [
+    "requests>=2.31",
+    "lxml>=5.0",
+    "Jinja2>=3.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+dbd-crawl = "crawler.cli:main"
+dbd-sync = "crawler.sync:main"
+dbd-wiki = "wiki.generate:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["crawler*", "wiki*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

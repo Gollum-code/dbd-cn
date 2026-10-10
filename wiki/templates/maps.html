@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}地图与领域 - DBD 中文 Wiki{% endblock %}
+{% block content %}
+<h1>地图与领域</h1>
+
+<h2>领域</h2>
+<div class="grid">
+  {% for r in realms %}
+  <div class="realm-card" {% if r.color %}style="border-color:#{{ r.color }}"{% endif %}>
+    <div class="name">{{ r.name_zh or r.name_en }}</div>
+    <div class="en">{{ r.name_en }}</div>
+    {% if r.location %}<div class="lo">{{ r.location }}</div>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<h2>地图</h2>
+<table class="table">
+  <thead><tr><th>地图</th><th>领域</th><th>钩点</th><th>图腾点</th><th>尺寸变化</th></tr></thead>
+  <tbody>
+  {% for m in maps %}
+  {% set realm = realms|selectattr('id','equalto', m.realm_id)|first %}
+  <tr>
+    <td>{{ m.name_zh or m.name_en }} <em>{{ m.name_en }}</em></td>
+    <td>{% if realm %}{{ realm.name_zh or realm.name_en }}{% endif %}</td>
+    <td>{% if m.hooks %}{{ m.hooks|fromjson }}{% endif %}</td>
+    <td>{% if m.totems %}{{ m.totems|fromjson }}{% endif %}</td>
+    <td>
+      {% set vs = m.variations|fromjson %}
+      {% if vs %}{{ vs|length }} 个版本{% endif %}
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="5">暂无数据。</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

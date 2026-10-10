@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ p.name_zh or p.name_en }} - DBD 中文 Wiki{% endblock %}
+{% block content %}
+<nav class="crumbs"><a href="../perks.html">技能</a> ›</nav>
+<div class="perk-head">
+  {% if p.icon %}<img class="perk-icon-lg" src="{{ p.icon|icon_url(base) }}" alt="{{ p.name_en }}">{% endif %}
+  <div>
+    <h1>{{ p.name_zh or p.name_en }} <small>{{ p.name_en }}</small></h1>
+    {% if owner %}
+    <p class="owner-line">所属：<a href="../character/{{ owner.id }}.html">{{ owner.name_zh or owner.name_en }}</a>（{{ '杀手' if owner.role == 'killer' else '逃生者' }}）</p>
+    {% endif %}
+  </div>
+</div>
+
+{% set tiers = p.tiers|fromjson %}
+{% set units = p.units|fromjson %}
+<table class="tiers">
+  <tr><th>等级</th>{% for lvl in range(1, 4) %}<th>档位 {{ lvl }}</th>{% endfor %}</tr>
+  <tr>
+    <th>数值</th>
+    {% for lvl in range(1, 4) %}
+    {% set v = tiers.get(lvl|string) %}
+    {% set u = units.get(lvl|string) if units else none %}
+    <td>{{ v if v is not none else '—' }}{{ ' ' ~ u if u else '' }}</td>
+    {% endfor %}
+  </tr>
+</table>
+
+{% if p.description %}
+<h2>描述</h2>
+<p>{{ p.description }}</p>
+{% endif %}
+
+{% if p.tags %}
+<h2>标签</h2>
+<div class="tags">
+  {% for t in p.tags|fromjson %}
+  <span class="tag">{{ t }}</span>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# Local secrets (never commit)
+.env
+*.local
+crawler/llm_state*.json
+
+# Data / generated site
+data/*.db-journal
+data/icons/
+site/
+*.db-journal
+
+# Node / assistant
+node_modules/
+assistant/dist/
+assistant/src-tauri/target/
+assistant/src-tauri/gen/
+
+# Tauri
+*.log
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,68 @@
+name: 每周数据同步 + 部署 Wiki
+
+on:
+  schedule:
+    # 每周一 03:00 UTC（北京时间 11:00）
+    - cron: "0 3 * * 1"
+  workflow_dispatch:   # 允许手动触发
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  sync-and-deploy:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: 安装依赖
+        run: pip install -e .
+
+      - name: 抓取数据 → 中文 SQLite
+        run: |
+          python -m crawler.cli --db data/dbd_cn.db
+        env:
+          DB_TZ: UTC
+
+      - name: 抓取图标（仅补缺失）
+        run: |
+          python -c "from crawler.icons import fetch_icons; print(fetch_icons(db_path='data/dbd_cn.db'))"
+
+      - name: LLM 翻译长文本（需在 Secrets 配置 LLM_API_KEY）
+        if: ${{ secrets.LLM_API_KEY != '' }}
+        run: |
+          python -c "from crawler.llm import translate_all_fields; print(translate_all_fields(db_path='data/dbd_cn.db'))"
+        env:
+          LLM_BASE_URL: ${{ vars.LLM_BASE_URL || 'https://api.inferaiapi.com/v1' }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_MODEL: ${{ vars.LLM_MODEL || 'deepseek-v4-pro' }}
+
+      - name: 生成静态 Wiki + sitemap + robots
+        run: |
+          python -m wiki.generate --db data/dbd_cn.db --out site --sitemap
+
+      - name: 提交数据变更（只提交数据库；图标与站点不入库）
+        run: |
+          git config user.name "dbd-cn bot"
+          git config user.email "dbd-cn@users.noreply.github.com"
+          git add data/dbd_cn.db
+          git diff --cached --quiet || git commit -m "chore: weekly sync $(date -u +%F)"
+          git push
+
+      - name: 部署 GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+          publish_branch: gh-pages
+          keep_files: false
