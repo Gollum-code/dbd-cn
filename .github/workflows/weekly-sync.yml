@@ -70,6 +70,14 @@ jobs:
             libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf \
             libglib2.0-dev libgtk-3-dev
 
+      - name: 创建 tauri build 所需的资源占位（图标不入库）
+        run: |
+          mkdir -p ../../data/icons
+          # tauri-build 会校验 bundle resources 路径存在；图标库未提交，
+          # CI 上放空目录占位，仅用于编译/测试，不需要真实内容
+          touch ../../data/icons/.gitkeep
+        working-directory: assistant/src-tauri
+
       - name: Lint (clippy)
         run: cargo clippy --lib -- -D warnings
         working-directory: assistant/src-tauri
