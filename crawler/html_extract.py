@@ -14,7 +14,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from lxml import etree, html
+from lxml import html
 
 _TEXT_TAGS = ("p", "li", "dt", "dd", "td", "th", "h3", "h4")
 
@@ -93,20 +93,7 @@ def perk_page_titles(client, name: str) -> list[str]:
 # ---------------------------------------------------------------------------
 def _section_between(root: Any, start: str, end: str) -> str:
     """Text of all content between two <h2> headings (by rough text match)."""
-    headings = root.xpath("//h2")
-    collect = False
     parts: list[str] = []
-    for h2 in headings:
-        text = (h2.text_content() or "").strip().lower()
-        if start.lower() in text:
-            collect = True
-            continue
-        if collect and end.lower() in text:
-            break
-        if collect:
-            for sib in h2.itersiblings(preceding=False):
-                pass
-    # simpler: gather siblings until heading matching end
     h2_start = None
     for h2 in root.xpath("//h2"):
         if start.lower() in (h2.text_content() or "").lower():

@@ -16,14 +16,12 @@ fills the remainder.
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any
 
 import requests
 
@@ -208,7 +206,7 @@ def translate_table_batch(client: LlmClient, conn, table: str, column: str,
             for fut in as_completed(futures):
                 grp = futures[fut]
                 results = fut.result()
-                for (rid, _text), zh in zip(grp, results):
+                for (rid, _text), zh in zip(grp, results, strict=False):
                     if zh and _has_cjk(zh):
                         conn.execute(
                             f"UPDATE {table} SET {column}=? WHERE id=?", (zh, rid)

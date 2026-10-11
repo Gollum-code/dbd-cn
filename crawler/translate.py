@@ -157,7 +157,6 @@ TERMS: dict[str, str] = {
     "Taurie Cain": "陶莉·凯恩",
     "Yoshida": "吉田",
     "Hux-A7-13": "哈克斯A7-13",
-    "The Mastermind": "幕后黑手",
     "Frank": "弗兰克",
     "Julie": "朱莉",
     "Susie": "苏西",
@@ -202,6 +201,7 @@ TERMS: dict[str, str] = {
     "The Decimated Borgo": "残破博尔戈",
     "Dvarka Deepwood": "德瓦尔卡密林",
     "Sleepless District": "无眠街区",
+    # Perk / addon tags (kept in English in the DB; translated at display time)
     # Rarities
     "Common": "常见",
     "Uncommon": "稀有",
@@ -229,7 +229,6 @@ TERMS: dict[str, str] = {
     "Chinese": "中国人",
     "Brazilian": "巴西人",
     "Not specified": "未知",
-    "Unknown": "未知",
     "different": "不同",
     "Chaos": "混沌",
     "The Trickster": "捣蛋者",

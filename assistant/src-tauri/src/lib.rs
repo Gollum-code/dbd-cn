@@ -7,34 +7,95 @@ use db::{Addon, Build, Character, Db, MapEntry, Patch, Perk, Realm, SyncInfo};
 use maps::{maps_with_realms, MapView};
 use recommender::{Recommender, PLAYSTYLES, Recommendation};
 use search::{search, SearchHit};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use tauri::{Manager, State};
+
+/// Read-only reference data loaded once from SQLite and kept in memory.
+///
+/// Only `builds` are written by the app, so every other table is immutable for
+/// the lifetime of the process.  Caching avoids re-reading ~1.5k rows on every
+/// keystroke in the search box, and returning `Arc<Vec<_>>` avoids cloning the
+/// (often very long) description/lore text on each call.
+#[derive(Default)]
+struct Cache {
+    chars: Option<Arc<Vec<Character>>>,
+    perks: Option<Arc<Vec<Perk>>>,
+    addons: Option<Arc<Vec<Addon>>>,
+    maps: Option<Arc<Vec<MapEntry>>>,
+    realms: Option<Arc<Vec<Realm>>>,
+}
 
 struct AppState {
     db: Mutex<Db>,
+    cache: Mutex<Cache>,
+}
+
+impl AppState {
+    fn characters(&self) -> Result<Arc<Vec<Character>>, String> {
+        if let Some(c) = self.cache.lock().map_err(|e| e.to_string())?.chars.clone() {
+            return Ok(c);
+        }
+        let v = self.db.lock().map_err(|e| e.to_string())?.list_characters()?;
+        let arc = Arc::new(v);
+        self.cache.lock().map_err(|e| e.to_string())?.chars = Some(arc.clone());
+        Ok(arc)
+    }
+    fn perks(&self) -> Result<Arc<Vec<Perk>>, String> {
+        if let Some(c) = self.cache.lock().map_err(|e| e.to_string())?.perks.clone() {
+            return Ok(c);
+        }
+        let v = self.db.lock().map_err(|e| e.to_string())?.list_perks()?;
+        let arc = Arc::new(v);
+        self.cache.lock().map_err(|e| e.to_string())?.perks = Some(arc.clone());
+        Ok(arc)
+    }
+    fn addons(&self) -> Result<Arc<Vec<Addon>>, String> {
+        if let Some(c) = self.cache.lock().map_err(|e| e.to_string())?.addons.clone() {
+            return Ok(c);
+        }
+        let v = self.db.lock().map_err(|e| e.to_string())?.list_addons()?;
+        let arc = Arc::new(v);
+        self.cache.lock().map_err(|e| e.to_string())?.addons = Some(arc.clone());
+        Ok(arc)
+    }
+    fn maps(&self) -> Result<Arc<Vec<MapEntry>>, String> {
+        if let Some(c) = self.cache.lock().map_err(|e| e.to_string())?.maps.clone() {
+            return Ok(c);
+        }
+        let v = self.db.lock().map_err(|e| e.to_string())?.list_maps()?;
+        let arc = Arc::new(v);
+        self.cache.lock().map_err(|e| e.to_string())?.maps = Some(arc.clone());
+        Ok(arc)
+    }
+    fn realms(&self) -> Result<Arc<Vec<Realm>>, String> {
+        if let Some(c) = self.cache.lock().map_err(|e| e.to_string())?.realms.clone() {
+            return Ok(c);
+        }
+        let v = self.db.lock().map_err(|e| e.to_string())?.list_realms()?;
+        let arc = Arc::new(v);
+        self.cache.lock().map_err(|e| e.to_string())?.realms = Some(arc.clone());
+        Ok(arc)
+    }
 }
 
 #[tauri::command]
 fn get_characters(state: State<AppState>) -> Result<Vec<Character>, String> {
-    state.db.lock().map_err(|e| e.to_string())?.list_characters()
+    Ok(state.characters()?.as_ref().clone())
 }
 
 #[tauri::command]
 fn get_perks(state: State<AppState>) -> Result<Vec<Perk>, String> {
-    state.db.lock().map_err(|e| e.to_string())?.list_perks()
+    Ok(state.perks()?.as_ref().clone())
 }
 
 #[tauri::command]
 fn get_addons(state: State<AppState>) -> Result<Vec<Addon>, String> {
-    state.db.lock().map_err(|e| e.to_string())?.list_addons()
+    Ok(state.addons()?.as_ref().clone())
 }
 
 #[tauri::command]
 fn get_maps(state: State<AppState>) -> Result<Vec<MapView>, String> {
-    let db = state.db.lock().map_err(|e| e.to_string())?;
-    let maps: Vec<MapEntry> = db.list_maps()?;
-    let realms: Vec<Realm> = db.list_realms()?;
-    Ok(maps_with_realms(&maps, &realms))
+    Ok(maps_with_realms(&state.maps()?, &state.realms()?))
 }
 
 #[tauri::command]
@@ -52,13 +113,12 @@ fn search_all(
     state: State<AppState>,
     query: String,
 ) -> Result<Vec<SearchHit>, String> {
-    let db = state.db.lock().map_err(|e| e.to_string())?;
     Ok(search(
-        &db.list_characters()?,
-        &db.list_perks()?,
-        &db.list_addons()?,
-        &db.list_maps()?,
-        &db.list_realms()?,
+        &state.characters()?,
+        &state.perks()?,
+        &state.addons()?,
+        &state.maps()?,
+        &state.realms()?,
         &query,
     ))
 }
@@ -69,9 +129,8 @@ fn recommend_build(
     character_id: String,
     playstyle: String,
 ) -> Result<Vec<Recommendation>, String> {
-    let db = state.db.lock().map_err(|e| e.to_string())?;
-    let chars = db.list_characters()?;
-    let perks = db.list_perks()?;
+    let chars = state.characters()?;
+    let perks = state.perks()?;
     let ch = chars
         .iter()
         .find(|c| c.id == character_id)
@@ -121,7 +180,10 @@ pub fn run() {
             let resource_dir = app.path().resource_dir().ok().map(|p| p.to_path_buf());
             let db = Db::open(resource_dir).expect("无法初始化数据库");
             db.seed_builds().ok();
-            app.manage(AppState { db: Mutex::new(db) });
+            app.manage(AppState {
+                db: Mutex::new(db),
+                cache: Mutex::new(Cache::default()),
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

@@ -42,9 +42,10 @@ CREATE TABLE IF NOT EXISTS perks (
     tiers       TEXT,                    -- JSON: {1: 28, 2: 30, 3: 32}
     units       TEXT,                    -- JSON: {1: 'metres'}
     description TEXT,
-    tags        TEXT,                    -- JSON array
-    patch       TEXT,
+    tags        TEXT,                    -- JSON array (中文标签)
+    tags_en     TEXT,                    -- JSON array (原始英文标签)
     icon        TEXT,
+    patch       TEXT,
     updated_at  TEXT
 );
 
@@ -56,8 +57,8 @@ CREATE TABLE IF NOT EXISTS addons (
     rarity      TEXT,                    -- zh rarity name
     rarity_en   TEXT,
     effect      TEXT,
-    tags        TEXT,                    -- JSON array
-    power       TEXT,
+    tags        TEXT,                    -- JSON array (中文标签)
+    tags_en     TEXT,                    -- JSON array (原始英文标签)
     icon        TEXT,
     updated_at  TEXT
 );
@@ -142,3 +143,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
     char_cols = {row[1] for row in conn.execute("PRAGMA table_info(characters)")}
     if "alternate" not in char_cols:
         conn.execute("ALTER TABLE characters ADD COLUMN alternate TEXT")
+    for tbl in ("perks", "addons"):
+        cols = {row[1] for row in conn.execute(f"PRAGMA table_info({tbl})")}
+        if "tags_en" not in cols:
+            conn.execute(f"ALTER TABLE {tbl} ADD COLUMN tags_en TEXT")

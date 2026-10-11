@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from crawler.lua_parser import (
     extract_table,
     parse_lua_value,

@@ -27,29 +27,32 @@
   var limit = 60;
   var index = [];
 
+  // index rows are compact arrays: [kind, id, name_zh, name_en, body, url]
+  var K = 0, I = 1, NZ = 2, NE = 3, B = 4, U = 5;
+
   function esc(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
       return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
     });
   }
 
-  function score(item, needle) {
+  function score(it, needle) {
     var s = 0;
-    if (item.name_zh && item.name_zh.indexOf(needle) === 0) s += 100;
-    else if (item.name_zh && item.name_zh.indexOf(needle) >= 0) s += 60;
-    if (item.name_en && item.name_en.toLowerCase().indexOf(needle) >= 0) s += 40;
-    if (item.id && item.id.toLowerCase().indexOf(needle) >= 0) s += 20;
-    if (item.body && item.body.indexOf(needle) >= 0) s += 10;
+    if (it[NZ] && it[NZ].indexOf(needle) === 0) s += 100;
+    else if (it[NZ] && it[NZ].indexOf(needle) >= 0) s += 60;
+    if (it[NE] && it[NE].toLowerCase().indexOf(needle) >= 0) s += 40;
+    if (it[I] && it[I].toLowerCase().indexOf(needle) >= 0) s += 20;
+    if (it[B] && it[B].indexOf(needle) >= 0) s += 10;
     return s;
   }
 
-  function snippetFor(item, needle) {
-    if (!item.body) return '';
-    var i = item.body.indexOf(needle);
+  function snippetFor(it, needle) {
+    var body = it[B];
+    if (!body) return '';
+    var i = body.indexOf(needle);
     if (i < 0) return '';
     var start = Math.max(0, i - 20);
-    var out = item.body.slice(start, start + 70);
-    return (start > 0 ? '…' : '') + out;
+    return (start > 0 ? '…' : '') + body.slice(start, start + 70);
   }
 
   function render() {
@@ -63,11 +66,11 @@
     var hits = [];
     for (var i = 0; i < index.length; i++) {
       var it = index[i];
-      if (kind !== 'all' && it.kind !== kind) continue;
+      if (kind !== 'all' && it[K] !== kind) continue;
       var s = score(it, needle);
-      if (s > 0) hits.push({ item: it, score: s });
+      if (s > 0) hits.push([s, it]);
     }
-    hits.sort(function (a, b) { return b.score - a.score; });
+    hits.sort(function (a, b) { return b[0] - a[0]; });
     countEl.textContent = '找到 ' + hits.length + ' 条结果' + (hits.length > limit ? '（显示前 ' + limit + ' 条）' : '');
     if (!hits.length) {
       results.innerHTML = '<li class="hint">没有匹配的结果。</li>';
@@ -75,12 +78,12 @@
     }
     var html = '';
     for (var j = 0; j < Math.min(hits.length, limit); j++) {
-      var h = hits[j];
-      var sn = snippetFor(h.item, needle);
-      html += '<li><a href="' + h.item.url + '">'
-        + '<span class="kind">' + esc(h.item.kind) + '</span>'
-        + '<span class="nm">' + esc(h.item.name_zh || h.item.name_en) + '</span>'
-        + (h.item.name_zh && h.item.name_en ? '<em>' + esc(h.item.name_en) + '</em>' : '')
+      var h = hits[j][1];
+      var sn = snippetFor(h, needle);
+      html += '<li><a href="' + esc(h[U]) + '">'
+        + '<span class="kind">' + esc(h[K]) + '</span>'
+        + '<span class="nm">' + esc(h[NZ] || h[NE]) + '</span>'
+        + (h[NZ] && h[NE] ? '<em>' + esc(h[NE]) + '</em>' : '')
         + (sn ? '<div class="sn">' + esc(sn) + '</div>' : '')
         + '</a></li>';
     }

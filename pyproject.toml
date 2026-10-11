@@ -13,12 +13,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0"]
+dev = ["pytest>=8.0", "ruff>=0.5"]
 
 [project.scripts]
 dbd-crawl = "crawler.cli:main"
 dbd-sync = "crawler.sync:main"
 dbd-wiki = "wiki.generate:main"
+dbd-review = "crawler.review_queue:main"
 
 [build-system]
 requires = ["setuptools>=68"]
@@ -29,3 +30,15 @@ include = ["crawler*", "wiki*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = ["E501", "B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"crawler/icons.py" = ["E402"]
+"tests/*" = ["E402"]

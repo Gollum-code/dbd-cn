@@ -192,7 +192,6 @@ impl Db {
                 .as_ref()
                 .map(|d| d.join("dbd_cn.db"))
                 .filter(|p| p.exists())
-                .map(|p| p)
                 .or_else(|| dev_copy.exists().then(|| dev_copy.clone()));
             if let Some(src) = source {
                 if !user_db.exists() {

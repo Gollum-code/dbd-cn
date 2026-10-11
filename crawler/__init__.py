@@ -1,6 +1,6 @@
 """dbd-cn crawler package: wiki.gg -> 中文 SQLite."""
 
-from .api import WikiClient, WikiApiError
+from .api import WikiApiError, WikiClient
 from .db import connect
 from .pipeline import build
 

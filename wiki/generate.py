@@ -253,59 +253,39 @@ def _body(text: str | None, cap: int = 200) -> str:
     return " ".join(text.split())[:cap]
 
 
-def _build_search_index(chars, perks, addons, maps, realms) -> list[dict]:
-    """Client-side search index.
+def _build_search_index(chars, perks, addons, maps, realms) -> list[list[str]]:
+    """Client-side search index as compact arrays.
 
-    Uses a compact row shape (kind/id/中文/英文/正文/URL) and the *full*
-    body text, so searching for a word late in a long description still
-    matches.  Serialised with tight separators to keep the file small.
+    Row shape: ``[kind, id, name_zh, name_en, body, url]``.  The full body text
+    is kept so a keyword late in a long description still matches; the compact
+    array layout (instead of objects with named keys) roughly halves the file.
     """
-    rows: list[dict] = []
+    rows: list[list[str]] = []
     for c in chars:
-        rows.append({
-            "kind": "角色",
-            "id": c["id"],
-            "name_zh": c.get("name_zh") or "",
-            "name_en": c.get("name_en") or "",
-            "body": " ".join(x for x in [c.get("lore"), c.get("power")] if x),
-            "url": f"character/{c['id']}.html",
-        })
+        rows.append([
+            "角色", c["id"], c.get("name_zh") or "", c.get("name_en") or "",
+            " ".join(x for x in [c.get("lore"), c.get("power")] if x),
+            f"character/{c['id']}.html",
+        ])
     for p in perks:
-        rows.append({
-            "kind": "技能",
-            "id": p["id"],
-            "name_zh": p.get("name_zh") or "",
-            "name_en": p.get("name_en") or "",
-            "body": p.get("description") or "",
-            "url": f"perk/{p['id']}.html",
-        })
+        rows.append([
+            "技能", p["id"], p.get("name_zh") or "", p.get("name_en") or "",
+            p.get("description") or "",
+            f"perk/{p['id']}.html",
+        ])
     for a in addons:
-        rows.append({
-            "kind": "附加品",
-            "id": a["id"],
-            "name_zh": a.get("name_zh") or "",
-            "name_en": a.get("name_en") or "",
-            "body": a.get("effect") or "",
-            "url": f"addon/{a['id']}.html",
-        })
+        rows.append([
+            "附加品", a["id"], a.get("name_zh") or "", a.get("name_en") or "",
+            a.get("effect") or "",
+            f"addon/{a['id']}.html",
+        ])
     for m in maps:
-        rows.append({
-            "kind": "地图",
-            "id": m["id"],
-            "name_zh": m.get("name_zh") or "",
-            "name_en": m.get("name_en") or "",
-            "body": "",
-            "url": "maps.html",
-        })
+        rows.append(["地图", m["id"], m.get("name_zh") or "", m.get("name_en") or "", "", "maps.html"])
     for r in realms:
-        rows.append({
-            "kind": "领域",
-            "id": str(r["id"]),
-            "name_zh": r.get("name_zh") or "",
-            "name_en": r.get("name_en") or "",
-            "body": r.get("location") or "",
-            "url": "maps.html",
-        })
+        rows.append([
+            "领域", str(r["id"]), r.get("name_zh") or "", r.get("name_en") or "",
+            r.get("location") or "", "maps.html",
+        ])
     return rows
 
 

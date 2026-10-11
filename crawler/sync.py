@@ -22,7 +22,7 @@ def main() -> None:
     args = ap.parse_args()
     try:
         counts = build(db_path=args.db)
-    except Exception as exc:  # noqa: BLE001
+    except Exception:  # noqa: BLE001
         logging.getLogger(__name__).exception("sync failed")
         sys.exit(1)
     print("同步完成:", counts)

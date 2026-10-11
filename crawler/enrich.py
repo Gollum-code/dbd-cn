@@ -11,18 +11,15 @@ few minutes.
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 import sqlite3
-from typing import Any, Callable
 
 from .api import WikiClient
 from .html_extract import (
     addon_effect,
     character_lore,
     character_power,
-    patch_notes,
     perk_description,
     perk_page_titles,
 )
@@ -166,6 +163,7 @@ def _patch_page_summary(page: str) -> str:
     to the page body.
     """
     from lxml import html as _lhtml
+
     from .html_extract import _clean_text
 
     root = _lhtml.fromstring(page)

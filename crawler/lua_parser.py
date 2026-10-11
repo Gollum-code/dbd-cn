@@ -12,8 +12,8 @@ Only the subset of Lua used in these files is supported:
 
 from __future__ import annotations
 
-import re
 import logging
+import re
 from typing import Any
 
 log = logging.getLogger(__name__)

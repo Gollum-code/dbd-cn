@@ -21,7 +21,7 @@ import sqlite3
 from pathlib import Path
 
 from .db import connect
-from .translate import EXTRA_DICTS, TERMS, looks_untranslated
+from .translate import looks_untranslated
 
 
 def collect_untranslated(conn: sqlite3.Connection) -> list[tuple[str, str, str]]:

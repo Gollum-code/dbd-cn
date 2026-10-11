@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from crawler.llm import _has_cjk, JOBS, MAX_CHARS, PARALLEL, _load_dotenv, cfg
+from crawler.llm import JOBS, _has_cjk, _load_dotenv, cfg
 
 
 class TestHelpers:

@@ -14,10 +14,10 @@ import re
 from pathlib import Path
 from typing import Any
 
+from . import translate as tr
 from .api import WikiClient
 from .db import connect
 from .lua_parser import extract_table
-from . import translate as tr
 from .translate import translate_all
 
 log = logging.getLogger(__name__)
@@ -55,6 +55,20 @@ def _norm_list(obj: Any) -> list[Any]:
     if isinstance(obj, dict):
         return list(obj.values())
     return [obj]
+
+
+def _tags_zh(obj: Any) -> str:
+    """Translate a Lua tag list into a JSON array of Chinese labels.
+
+    Unknown tags keep their original English name so nothing is lost.
+    """
+    tags = tr.EXTRA_DICTS.get("tags_zh", {})
+    out = []
+    for t in _norm_list(obj):
+        if not isinstance(t, str):
+            continue
+        out.append(tags.get(t, t))
+    return json.dumps(out, ensure_ascii=False)
 
 
 # ---------------------------------------------------------------------------
@@ -122,9 +136,9 @@ def normalise_characters(
 ) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     realm_map = {r.get("id"): r.get("name", "") for r in realms}
-    for role, rows, rkey in (
-        ("killer", killers, "Killers"),
-        ("survivor", survivors, "Survivors"),
+    for role, rows in (
+        ("killer", killers),
+        ("survivor", survivors),
     ):
         for row in rows:
             ch_id = _char_id("k", row.get("id", 0)) if role == "killer" else _char_id("s", row.get("id", 0))
@@ -168,7 +182,8 @@ def normalise_perks(perks: dict[str, dict]) -> list[dict[str, Any]]:
             "role": "killer" if row.get("charType") == "K" else "survivor",
             "tiers": json.dumps(_norm_dict(row.get("values"))),
             "units": json.dumps(_norm_dict(row.get("units"))),
-            "tags": json.dumps(_norm_list(row.get("tags"))),
+            "tags": _tags_zh(row.get("tags")),
+            "tags_en": json.dumps(_norm_list(row.get("tags"))),
             "patch": row.get("patch", ""),
             "level": row.get("level", ""),
             "prestige": row.get("prestige", ""),
@@ -195,7 +210,8 @@ def normalise_addons(addons: dict[str, dict]) -> list[dict[str, Any]]:
             "rarity": tr.translate_term(rarity_en),
             "rarity_en": rarity_en,
             "effect": "",
-            "tags": json.dumps(_norm_list(row.get("tags"))),
+            "tags": _tags_zh(row.get("tags")),
+            "tags_en": json.dumps(_norm_list(row.get("tags"))),
             "power": row.get("power", ""),
         })
     return out
@@ -298,29 +314,31 @@ def load_into_db(conn, *, characters, perks, addons, maps, realms, patches=None)
     for p in perks:
         cur.execute(
             """INSERT INTO perks
-               (id,name_en,name_zh,owner,role,tiers,units,tags,patch,updated_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?)
+               (id,name_en,name_zh,owner,role,tiers,units,tags,tags_en,patch,updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)
                ON CONFLICT(id) DO UPDATE SET
                  name_en=excluded.name_en,name_zh=excluded.name_zh,
                  owner=excluded.owner,role=excluded.role,tiers=excluded.tiers,
-                 units=excluded.units,tags=excluded.tags,patch=excluded.patch,
-                 updated_at=excluded.updated_at""",
+                 units=excluded.units,tags=excluded.tags,tags_en=excluded.tags_en,
+                 patch=excluded.patch,updated_at=excluded.updated_at""",
             (p["id"], p["name_en"], p["name_zh"], p["owner"], p["role"],
-             p["tiers"], p["units"], p["tags"], p.get("patch", ""), _ts()),
+             p["tiers"], p["units"], p["tags"], p.get("tags_en", "[]"),
+             p.get("patch", ""), _ts()),
         )
     for a in addons:
         cur.execute(
             """INSERT INTO addons
-               (id,name_en,name_zh,owner,rarity,rarity_en,tags,power,updated_at)
-               VALUES (?,?,?,?,?,?,?,?,?)
+               (id,name_en,name_zh,owner,rarity,rarity_en,tags,tags_en,icon,updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?)
                ON CONFLICT(id) DO UPDATE SET
                  name_en=excluded.name_en,name_zh=excluded.name_zh,
                  owner=excluded.owner,rarity=excluded.rarity,
                  rarity_en=excluded.rarity_en,tags=excluded.tags,
-                 power=excluded.power,updated_at=excluded.updated_at""",
+                 tags_en=excluded.tags_en,icon=COALESCE(excluded.icon, addons.icon),
+                 updated_at=excluded.updated_at""",
             (a["id"], a["name_en"], a["name_zh"], a.get("owner", ""),
              a.get("rarity", ""), a.get("rarity_en", ""), a.get("tags", "[]"),
-             a.get("power", ""), _ts()),
+             a.get("tags_en", "[]"), a.get("icon"), _ts()),
         )
     for m_ in maps:
         cur.execute(
@@ -375,7 +393,9 @@ def build(client: WikiClient | None = None, db_path: str = "data/dbd_cn.db"):
     patches_tbl = extract_table(datatable, "patches", kind="bare") or []
     perks = extract_table(loadout, "perks") or {}
     addons = extract_table(loadout, "addons") or {}
-    powers = extract_table(loadout, "powers") or {}
+    # NOTE: the datatable also exposes a `powers` table (ability stats); it is
+    # not persisted because the wiki carries the same info on each character
+    # page (captured into characters.power by enrich.py).
 
     characters = normalise_characters(killers, survivors, realms)
     perks_out = normalise_perks(perks)

@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import sqlite3
-
 from crawler.db import connect
-from crawler.pipeline import normalise_patches, translate_all
+from crawler.pipeline import normalise_patches
 from crawler.review_queue import collect_untranslated, dump_review, import_review
 
 
