@@ -1,6 +1,9 @@
 name: 每周数据同步 + 部署 Wiki
 
 on:
+  push:
+    branches: [main]
+  pull_request:
   schedule:
     # 每周一 03:00 UTC（北京时间 11:00）
     - cron: "0 3 * * 1"
@@ -70,6 +73,8 @@ jobs:
 
   sync-and-deploy:
     needs: test        # 只有测试通过才同步/部署
+    # 只在主干推送 / 定时 / 手动时部署；PR 仅跑 test job
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     concurrency:
       group: pages

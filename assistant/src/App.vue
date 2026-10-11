@@ -21,7 +21,15 @@
           @keyup.enter="focusFirst"
         />
         <ul v-if="results.length" class="results">
-          <li v-for="hit in results" :key="hit.kind + hit.id" @click="go(hit)">
+          <li
+            v-for="hit in results"
+            :key="hit.kind + hit.id"
+            tabindex="0"
+            role="button"
+            @click="go(hit)"
+            @keydown.enter.prevent="go(hit)"
+            @keydown.space.prevent="go(hit)"
+          >
             <div class="row">
               <span class="kind">{{ hit.kind }}</span> {{ hit.name_zh || hit.name_en }}
               <em>{{ hit.name_en }}</em>

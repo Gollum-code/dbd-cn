@@ -10,7 +10,8 @@
 <meta property="og:description" content="{{ description or '黎明杀机（Dead by Daylight）中文资料站：角色、技能、附加品、地图与构筑推荐。' }}">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="zh_CN">
-<link rel="canonical" href="{{ canonical or '' }}">
+{% if canonical %}<link rel="canonical" href="{{ canonical }}">{% endif %}
+{% if jsonld %}<script type="application/ld+json">{{ jsonld|safe }}</script>{% endif %}
 <title>{% block title %}DBD 中文 Wiki{% endblock %}</title>
 <link rel="stylesheet" href="{{ base | default('', true) }}static/style.css">
 </head>

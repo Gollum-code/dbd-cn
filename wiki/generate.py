@@ -30,6 +30,7 @@ from urllib.parse import quote
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 SCRIPT = "dbd-cn/0.1 (+https://github.com/dbd-cn; contact=dbd-cn@example.org)"
+SITE_URL = "https://dbd-cn.github.io/dbd-cn/"
 
 try:
     from crawler.db import connect
@@ -41,6 +42,49 @@ except ImportError:  # allow running as `python wiki/generate.py`
 
 def _rows(conn: sqlite3.Connection, sql: str, params=()) -> list[dict]:
     return [dict(r) for r in conn.execute(sql, params)]
+
+
+def _jsonld(obj: dict) -> str:
+    """Serialise a JSON-LD block, safe to embed inside a <script> tag."""
+    return json.dumps(obj, ensure_ascii=False).replace("<", "\\u003c")
+
+
+def _jsonld_website(base: str) -> str:
+    return _jsonld({
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "黎明杀机中文 Wiki",
+        "url": base,
+        "inLanguage": "zh-CN",
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": base + "search.html?q={search_term_string}",
+            "query-input": "required name=search_term_string",
+        },
+    })
+
+
+def _jsonld_character(ch: dict, base: str) -> str:
+    return _jsonld({
+        "@context": "https://schema.org",
+        "@type": "VideoGameCharacter",
+        "name": ch.get("name_zh") or ch.get("name_en"),
+        "alternateName": ch.get("name_en"),
+        "url": base + "character/" + ch["id"] + ".html",
+        "inLanguage": "zh-CN",
+    })
+
+
+def _jsonld_perk(p: dict, base: str) -> str:
+    return _jsonld({
+        "@context": "https://schema.org",
+        "@type": "Thing",
+        "name": p.get("name_zh") or p.get("name_en"),
+        "alternateName": p.get("name_en"),
+        "url": base + "perk/" + p["id"] + ".html",
+        "description": (p.get("description") or "")[:300],
+        "inLanguage": "zh-CN",
+    })
 
 
 def _base_url(p: Path, out_dir: Path) -> str:
@@ -124,9 +168,11 @@ def render_site(
     _w(page, env.get_template("index.html").render(
         killers=killers, survivors=survivors, perks=perks, maps=maps, realms=realms,
         patches=patches, sync=sync, base=_base_url(page, out_dir),
+        jsonld=_jsonld_website(SITE_URL),
         **_seo("黎明杀机中文Wiki - 角色/技能/附加品/地图资料站",
                "黎明杀机（Dead by Daylight）中文资料站：杀手与逃生者图鉴、技能大全、附加品、地图领域、构筑推荐。每周自动同步官方数据。",
-               "黎明杀机,黎明杀机wiki,DBD,Dead by Daylight,杀手,逃生者,技能,附加品,地图")))
+               "黎明杀机,黎明杀机wiki,DBD,Dead by Daylight,杀手,逃生者,技能,附加品,地图",
+               SITE_URL)))
     sitemap.append(page)
 
     # roster
@@ -136,8 +182,9 @@ def render_site(
             role=role, title=f"{name}图鉴", chars=rows, sync=sync,
             base=_base_url(page, out_dir),
             **_seo(f"{name}图鉴 - 黎明杀机中文Wiki",
-                   f"黎明杀机『{name}』全角色图鉴：难度/移速/恐惧范围/背面故事与专属技能。",
-                   "黎明杀机,DBD,杀手,逃生者,角色图鉴")))
+                   f"黎明杀机『{name}』全角色图鉴：难度/移速/恐惧范围/背景故事与专属技能。",
+                   "黎明杀机,DBD,杀手,逃生者,角色图鉴",
+                   SITE_URL + f"roster/{role}s.html")))
         sitemap.append(page)
 
 # character detail
@@ -156,8 +203,10 @@ def render_site(
             ch=ch, perks=owned_perks, addons=owned_addons, realm=realm, sync=sync,
             universal_perks=universal[ch["role"]],
             base=_base_url(page, out_dir),
+            jsonld=_jsonld_character(ch, SITE_URL),
             **_seo(f"{name} - 黎明杀机中文Wiki",
-                   f"黎明杀机角色『{name}』资料：{'背景故事、能力与' if ch['role']=='killer' else ''}专属技能、附加品。")) )
+                   f"黎明杀机角色『{name}』资料：{'背景故事、能力与' if ch['role']=='killer' else ''}专属技能、附加品。",
+                   canonical=SITE_URL + "character/" + ch["id"] + ".html")) )
         sitemap.append(page)
 
     # perks list + detail
@@ -166,15 +215,18 @@ def render_site(
         perks=perks, killers=killers, survivors=survivors, sync=sync, base=_base_url(page, out_dir),
         **_seo("技能大全 - 黎明杀机中文Wiki",
                "黎明杀机全部技能中文资料：技能描述、三档数值、所属角色。支持中文检索。",
-               "黎明杀机,DBD,技能,技能大全,技能图鉴")))
+               "黎明杀机,DBD,技能,技能大全,技能图鉴",
+               SITE_URL + "perks.html")))
     sitemap.append(page)
     for p in perks:
         pname = p["name_zh"] or p["name_en"]
         page = out_dir / f"perk/{p['id']}.html"
         _w(page, env.get_template("perk.html").render(
             p=p, owner=char_by_id.get(p["owner"]), sync=sync, base=_base_url(page, out_dir),
+            jsonld=_jsonld_perk(p, SITE_URL),
             **_seo(f"{pname} - 黎明杀机中文Wiki",
-                   f"黎明杀机技能『{pname}』（{p['name_en']}）：效果描述与三档数值。")))
+                   f"黎明杀机技能『{pname}』（{p['name_en']}）：效果描述与三档数值。",
+                   canonical=SITE_URL + "perk/" + p["id"] + ".html")))
         sitemap.append(page)
 
     # addons list (paginated: addons.html, addons-2.html, ...)
@@ -185,7 +237,8 @@ def render_site(
         _w(page, env.get_template("addon.html").render(
             a=a, owner=owner, sync=sync, base=_base_url(page, out_dir),
             **_seo("{} - 附加品 - DBD 中文 Wiki".format(a.get("name_zh") or a["name_en"]),
-                   "{}：中文效果、稀有度与所属角色。".format(a.get("name_zh") or a["name_en"]))))
+                   "{}：中文效果、稀有度与所属角色。".format(a.get("name_zh") or a["name_en"]),
+                   canonical=SITE_URL + "addon/" + a["id"] + ".html")))
         sitemap.append(page)
 
     # maps
@@ -193,14 +246,15 @@ def render_site(
     _w(page, env.get_template("maps.html").render(
         maps=maps, realms=realms, sync=sync, base=_base_url(page, out_dir),
         **_seo("地图与领域 - 黎明杀机中文Wiki",
-               "黎明杀机地图与领域资料：钩点、图腾点、地图尺寸版本变化。")))
+               "黎明杀机地图与领域资料：钩点、图腾点、地图尺寸版本变化。",
+               canonical=SITE_URL + "maps.html")))
     sitemap.append(page)
 
     # 404 page
     page = out_dir / "404.html"
     _w(page, env.get_template("404.html").render(
         sync=sync, base=_base_url(page, out_dir),
-        **_seo("页面不存在 - DBD 中文 Wiki", "页面不存在。")))
+        **_seo("页面不存在 - DBD 中文 Wiki", "页面不存在。", canonical=SITE_URL + "404.html")))
 
     # 站内搜索（索引单独成文件，便于缓存/并行加载）
     search_index = _build_search_index(killers + survivors, perks, addons, maps, realms)
@@ -216,7 +270,8 @@ def render_site(
         index_url=_base_url(page, out_dir) + "static/search-index.json",
         sync=sync, base=_base_url(page, out_dir),
         **_seo("搜索 - DBD 中文 Wiki",
-               "在黎明杀机中文 Wiki 中搜索角色、技能、附加品与地图，支持中文效果关键词。")))
+               "在黎明杀机中文 Wiki 中搜索角色、技能、附加品与地图，支持中文效果关键词。",
+               canonical=SITE_URL + "search.html")))
     sitemap.append(page)
 
     # changelog (patches) - paginated
@@ -227,7 +282,8 @@ def render_site(
     _w(page, env.get_template("builds.html").render(
         builds=builds, char_by_id=char_by_id, sync=sync, base=_base_url(page, out_dir),
         **_seo("构筑推荐 - 黎明杀机中文Wiki",
-               "黎明杀机社区构筑推荐：杀手/逃生者主流玩法技能搭配。")))
+               "黎明杀机社区构筑推荐：杀手/逃生者主流玩法技能搭配。",
+               canonical=SITE_URL + "builds.html")))
     sitemap.append(page)
 
     # assets
