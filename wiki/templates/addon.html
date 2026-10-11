@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ a.name_zh or a.name_en }} - DBD 中文 Wiki{% endblock %}
+{% block content %}
+<nav class="crumbs"><a href="{{ base }}addons.html">附加品</a> ›</nav>
+<div class="perk-head">
+  {% if a.icon %}<img class="perk-icon-lg" src="{{ a.icon|icon_url(base) }}" alt="{{ a.name_en }}">{% endif %}
+  <div>
+    <h1>{{ a.name_zh or a.name_en }} <small>{{ a.name_en }}</small></h1>
+    <p class="owner-line">
+      <span class="rarity r{{ a.rarity_en|lower }}">{{ a.rarity or a.rarity_en }}</span>
+      {% if owner %} · 所属：<a href="{{ base }}character/{{ owner.id }}.html">{{ owner.name_zh or owner.name_en }}</a>{% endif %}
+    </p>
+  </div>
+</div>
+
+{% if a.effect %}
+<h2>效果</h2>
+<p class="prose">{{ a.effect }}</p>
+{% endif %}
+
+{% if a.tags %}
+{% set tags = a.tags|fromjson %}
+{% if tags %}
+<h2>标签</h2>
+<div class="tags">
+  {% for t in tags %}<span class="tag">{{ t }}</span>{% endfor %}
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

@@ -10,6 +10,7 @@
         <RouterLink to="/my-builds">我的构筑</RouterLink>
         <RouterLink to="/maps">地图查询</RouterLink>
         <RouterLink to="/changelog">版本更新</RouterLink>
+        <RouterLink to="/about">关于</RouterLink>
       </nav>
       <div class="search">
         <input

@@ -163,30 +163,65 @@ pub struct Db {
 }
 
 impl Db {
+    /// Open the database, preferring a writable copy.
+    ///
+    /// In a packaged build the bundled database lives inside the app bundle,
+    /// which is read-only on macOS (/Applications) and Windows (Program
+    /// Files).  We therefore copy it once into the user-data directory and
+    /// always work on that copy, so saving builds keeps working.
     pub fn open(resource_dir: Option<PathBuf>) -> Result<Self, String> {
         let path = Self::db_path(resource_dir)?;
         let conn = Connection::open(&path).map_err(|e| format!("无法打开数据库: {e}"))?;
         Ok(Self { conn })
     }
 
-    /// Locate the database: bundled resource dir first, then user-data cache
-    /// dir, then the dev-time ./data copy.
+    /// Locate a *writable* database.
+    ///
+    /// Order: user-data copy (created from the bundled one on first run) →
+    /// dev-time ./data/dbd_cn.db → user-data path even if it does not exist yet.
     fn db_path(resource_dir: Option<PathBuf>) -> Result<PathBuf, String> {
-        let candidates: Vec<PathBuf> = resource_dir
-            .iter()
-            .map(|d| d.join("dbd_cn.db"))
-            .chain(dirs_data().map(|d| d.join("dbd_cn.db")))
-            .chain(std::iter::once(PathBuf::from("./data/dbd_cn.db")))
-            .collect();
-        for p in &candidates {
-            if p.exists() {
-                return Ok(p.clone());
+        let dev_copy = PathBuf::from("./data/dbd_cn.db");
+
+        if let Some(user_dir) = dirs_data() {
+            if !user_dir.exists() {
+                let _ = std::fs::create_dir_all(&user_dir);
+            }
+            let user_db = user_dir.join("dbd_cn.db");
+            // seed the user copy from the bundled/dev database once
+            let source = resource_dir
+                .as_ref()
+                .map(|d| d.join("dbd_cn.db"))
+                .filter(|p| p.exists())
+                .map(|p| p)
+                .or_else(|| dev_copy.exists().then(|| dev_copy.clone()));
+            if let Some(src) = source {
+                if !user_db.exists() {
+                    if let Some(parent) = user_db.parent() {
+                        let _ = std::fs::create_dir_all(parent);
+                    }
+                    if std::fs::copy(&src, &user_db).is_err() {
+                        // fall back to opening the source directly (read-only)
+                        return Ok(src);
+                    }
+                }
+            }
+            if user_db.exists() {
+                return Ok(user_db);
             }
         }
-        Ok(candidates
-            .last()
-            .cloned()
-            .unwrap_or_else(|| PathBuf::from("./data/dbd_cn.db")))
+
+        // dev fallback: use the repo copy (writable)
+        if dev_copy.exists() {
+            return Ok(dev_copy);
+        }
+        // last resort: bundled resource (may be read-only)
+        if let Some(d) = resource_dir {
+            let p = d.join("dbd_cn.db");
+            if p.exists() {
+                return Ok(p);
+            }
+        }
+        Ok(dev_copy)
     }
 
     pub fn list_characters(&self) -> Result<Vec<Character>, String> {

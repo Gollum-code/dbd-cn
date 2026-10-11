@@ -9,7 +9,7 @@
   <tbody>
   {% for a in page_addons %}
   <tr>
-    <td>{% if a.icon %}<img class="addon-icon" src="{{ a.icon|icon_url(base) }}" alt="{{ a.name_en }}" loading="lazy">{% endif %} {{ a.name_zh or a.name_en }} <em>{{ a.name_en }}</em></td>
+    <td>{% if a.icon %}<img class="addon-icon" src="{{ a.icon|icon_url(base) }}" alt="{{ a.name_en }}" loading="lazy">{% endif %} <a href="{{ base }}addon/{{ a.id }}.html">{{ a.name_zh or a.name_en }}</a> <em>{{ a.name_en }}</em></td>
     <td><span class="rarity r{{ a.rarity_en|lower }}">{{ a.rarity or a.rarity_en }}</span></td>
     <td class="effect">{% if a.effect %}{{ a.effect }}{% endif %}</td>
     <td>

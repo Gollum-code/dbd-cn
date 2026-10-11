@@ -8,6 +8,7 @@ import Perks from "./views/Perks.vue";
 import Roster from "./views/Roster.vue";
 import Maps from "./views/Maps.vue";
 import Changelog from "./views/Changelog.vue";
+import About from "./views/About.vue";
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -20,6 +21,7 @@ const router = createRouter({
     { path: "/my-builds", component: Builds },
     { path: "/maps", component: Maps },
     { path: "/changelog", component: Changelog },
+    { path: "/about", component: About },
   ],
 });
 

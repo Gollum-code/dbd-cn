@@ -174,6 +174,14 @@ def render_site(
 
     # addons list (paginated: addons.html, addons-2.html, ...)
     _write_paginated_addons(out_dir, addons, killers, survivors, sitemap)
+    for a in addons:
+        owner = char_by_id.get(a["owner"])
+        page = out_dir / "addon" / f"{a['id']}.html"
+        _w(page, env.get_template("addon.html").render(
+            a=a, owner=owner, sync=sync, base=_base_url(page, out_dir),
+            **_seo("{} - 附加品 - DBD 中文 Wiki".format(a.get("name_zh") or a["name_en"]),
+                   "{}：中文效果、稀有度与所属角色。".format(a.get("name_zh") or a["name_en"]))))
+        sitemap.append(page)
 
     # maps
     page = out_dir / "maps.html"
@@ -183,12 +191,19 @@ def render_site(
                "黎明杀机地图与领域资料：钩点、图腾点、地图尺寸版本变化。")))
     sitemap.append(page)
 
+    # 404 page
+    page = out_dir / "404.html"
+    _w(page, env.get_template("404.html").render(
+        sync=sync, base=_base_url(page, out_dir),
+        **_seo("页面不存在 - DBD 中文 Wiki", "页面不存在。")))
+
     # 站内搜索（索引单独成文件，便于缓存/并行加载）
     search_index = _build_search_index(killers + survivors, perks, addons, maps, realms)
     index_path = out_dir / "static" / "search-index.json"
     index_path.parent.mkdir(parents=True, exist_ok=True)
     index_path.write_text(
-        json.dumps(search_index, ensure_ascii=False), encoding="utf-8"
+        json.dumps(search_index, ensure_ascii=False, separators=(",", ":")),
+        encoding="utf-8",
     )
     page = out_dir / "search.html"
     _w(page, env.get_template("search.html").render(
@@ -239,9 +254,11 @@ def _body(text: str | None, cap: int = 200) -> str:
 
 
 def _build_search_index(chars, perks, addons, maps, realms) -> list[dict]:
-    """Flat client-side search index: one row per searchable entity.
+    """Client-side search index.
 
-    Long bodies (lore / effects) are capped so the embedded index stays lean.
+    Uses a compact row shape (kind/id/中文/英文/正文/URL) and the *full*
+    body text, so searching for a word late in a long description still
+    matches.  Serialised with tight separators to keep the file small.
     """
     rows: list[dict] = []
     for c in chars:
@@ -250,8 +267,8 @@ def _build_search_index(chars, perks, addons, maps, realms) -> list[dict]:
             "id": c["id"],
             "name_zh": c.get("name_zh") or "",
             "name_en": c.get("name_en") or "",
+            "body": " ".join(x for x in [c.get("lore"), c.get("power")] if x),
             "url": f"character/{c['id']}.html",
-            "body": _body(c.get("lore")),
         })
     for p in perks:
         rows.append({
@@ -259,8 +276,8 @@ def _build_search_index(chars, perks, addons, maps, realms) -> list[dict]:
             "id": p["id"],
             "name_zh": p.get("name_zh") or "",
             "name_en": p.get("name_en") or "",
+            "body": p.get("description") or "",
             "url": f"perk/{p['id']}.html",
-            "body": _body(p.get("description")),
         })
     for a in addons:
         rows.append({
@@ -268,8 +285,8 @@ def _build_search_index(chars, perks, addons, maps, realms) -> list[dict]:
             "id": a["id"],
             "name_zh": a.get("name_zh") or "",
             "name_en": a.get("name_en") or "",
-            "url": f"addons.html#{a['id']}",
-            "body": _body(a.get("effect")),
+            "body": a.get("effect") or "",
+            "url": f"addon/{a['id']}.html",
         })
     for m in maps:
         rows.append({
@@ -277,8 +294,8 @@ def _build_search_index(chars, perks, addons, maps, realms) -> list[dict]:
             "id": m["id"],
             "name_zh": m.get("name_zh") or "",
             "name_en": m.get("name_en") or "",
-            "url": "maps.html",
             "body": "",
+            "url": "maps.html",
         })
     for r in realms:
         rows.append({
@@ -286,8 +303,8 @@ def _build_search_index(chars, perks, addons, maps, realms) -> list[dict]:
             "id": str(r["id"]),
             "name_zh": r.get("name_zh") or "",
             "name_en": r.get("name_en") or "",
+            "body": r.get("location") or "",
             "url": "maps.html",
-            "body": _body(r.get("location")),
         })
     return rows
 
