@@ -166,7 +166,7 @@ def render_site(
     # instead of rendering broken images.
     icon_root = Path(db_path).parent / "icons"
     if not icon_root.exists():
-        for table, rows in (("perks", perks), ("addons", addons), ("characters", killers + survivors)):
+        for _table, rows in (("perks", perks), ("addons", addons), ("characters", killers + survivors)):
             for row in rows:
                 row["icon"] = None
     else:
