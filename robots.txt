@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://dbd-cn.github.io/dbd-cn/sitemap.xml

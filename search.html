@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="在黎明杀机中文 Wiki 中搜索角色、技能、附加品与地图，支持中文效果关键词。">
+
+<meta name="author" content="dbd-cn">
+<meta property="og:title" content="搜索 - DBD 中文 Wiki">
+<meta property="og:description" content="在黎明杀机中文 Wiki 中搜索角色、技能、附加品与地图，支持中文效果关键词。">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="zh_CN">
+<link rel="canonical" href="https://dbd-cn.github.io/dbd-cn/search.html">
+
+<title>搜索 - DBD 中文 Wiki</title>
+<link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+<header class="site-header">
+  <a class="brand" href="index.html">黎明杀机 <span>中文 Wiki</span></a>
+  <nav>
+    <a href="index.html">首页</a>
+    <a href="roster/killers.html">杀手</a>
+    <a href="roster/survivors.html">逃生者</a>
+    <a href="perks.html">技能</a>
+    <a href="addons.html">附加品</a>
+    <a href="maps.html">地图</a>
+    <a href="changelog.html">更新日志</a>
+    <a href="builds.html">构筑</a>
+    <a href="search.html">搜索</a>
+  </nav>
+</header>
+<main class="container">
+
+<h1>站内搜索</h1>
+<p class="sub">在 1482 条资料中查找角色 / 技能 / 附加品 / 地图</p>
+
+<input id="q" type="search" class="search-box" placeholder="输入关键词，支持中文效果描述（如 治疗、加速、钩子）" autocomplete="off">
+<div id="filters" class="filters">
+  <label><input type="radio" name="kind" value="all" checked> 全部</label>
+  <label><input type="radio" name="kind" value="角色"> 角色</label>
+  <label><input type="radio" name="kind" value="技能"> 技能</label>
+  <label><input type="radio" name="kind" value="附加品"> 附加品</label>
+  <label><input type="radio" name="kind" value="地图"> 地图</label>
+</div>
+
+<p id="count" class="count"></p>
+<ul id="results" class="results"></ul>
+<noscript><p class="hint">站内搜索需要启用 JavaScript。</p></noscript>
+
+<script id="search-index-url" type="application/json">static/search-index.json</script>
+<script>
+(function () {
+  var q = document.getElementById('q');
+  var results = document.getElementById('results');
+  var countEl = document.getElementById('count');
+  var radios = document.querySelectorAll('#filters input');
+  var limit = 60;
+  var index = [];
+
+  // index rows are compact arrays: [kind, id, name_zh, name_en, body, url]
+  var K = 0, I = 1, NZ = 2, NE = 3, B = 4, U = 5;
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function score(it, needle) {
+    var s = 0;
+    if (it[NZ] && it[NZ].indexOf(needle) === 0) s += 100;
+    else if (it[NZ] && it[NZ].indexOf(needle) >= 0) s += 60;
+    if (it[NE] && it[NE].toLowerCase().indexOf(needle) >= 0) s += 40;
+    if (it[I] && it[I].toLowerCase().indexOf(needle) >= 0) s += 20;
+    if (it[B] && it[B].indexOf(needle) >= 0) s += 10;
+    return s;
+  }
+
+  function snippetFor(it, needle) {
+    var body = it[B];
+    if (!body) return '';
+    var i = body.indexOf(needle);
+    if (i < 0) return '';
+    var start = Math.max(0, i - 20);
+    return (start > 0 ? '…' : '') + body.slice(start, start + 70);
+  }
+
+  function render() {
+    var needle = q.value.trim().toLowerCase();
+    var kind = document.querySelector('#filters input:checked').value;
+    if (!needle) {
+      countEl.textContent = '';
+      results.innerHTML = '<li class="hint">输入关键词开始搜索。</li>';
+      return;
+    }
+    var hits = [];
+    for (var i = 0; i < index.length; i++) {
+      var it = index[i];
+      if (kind !== 'all' && it[K] !== kind) continue;
+      var s = score(it, needle);
+      if (s > 0) hits.push([s, it]);
+    }
+    hits.sort(function (a, b) { return b[0] - a[0]; });
+    countEl.textContent = '找到 ' + hits.length + ' 条结果' + (hits.length > limit ? '（显示前 ' + limit + ' 条）' : '');
+    if (!hits.length) {
+      results.innerHTML = '<li class="hint">没有匹配的结果。</li>';
+      return;
+    }
+    var html = '';
+    for (var j = 0; j < Math.min(hits.length, limit); j++) {
+      var h = hits[j][1];
+      var sn = snippetFor(h, needle);
+      html += '<li><a href="' + esc(h[U]) + '">'
+        + '<span class="kind">' + esc(h[K]) + '</span>'
+        + '<span class="nm">' + esc(h[NZ] || h[NE]) + '</span>'
+        + (h[NZ] && h[NE] ? '<em>' + esc(h[NE]) + '</em>' : '')
+        + (sn ? '<div class="sn">' + esc(sn) + '</div>' : '')
+        + '</a></li>';
+    }
+    results.innerHTML = html;
+  }
+
+  var url = JSON.parse(document.getElementById('search-index-url').textContent);
+  fetch(url)
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      index = data;
+      document.getElementById('count').textContent = '索引已就绪（' + index.length + ' 条）';
+      render();
+    })
+    .catch(function () {
+      results.innerHTML = '<li class="hint">搜索索引加载失败。</li>';
+    });
+
+  q.addEventListener('input', render);
+  Array.prototype.forEach.call(radios, function (r) { r.addEventListener('change', render); });
+  render();
+})();
+</script>
+
+</main>
+<footer class="site-footer">
+  <p>本站为非官方粉丝项目 · 数据来源 <a href="https://deadbydaylight.wiki.gg" rel="noopener">deadbydaylight.wiki.gg</a> · 最近同步 2026-10-11T14:55+00:00</p>
+  <p class="copyright">角色立绘与图标等素材来自《Dead by Daylight》游戏本体或其发行商所有的关联网站，版权归发行商与开发者所有，其中所有商标均为发行商的专有财产。</p>
+</footer>
+</body>
+</html>
