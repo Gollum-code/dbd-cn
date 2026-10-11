@@ -100,10 +100,15 @@ jobs:
         run: |
           python -c "from crawler.icons import fetch_icons; print(fetch_icons(db_path='data/dbd_cn.db'))"
 
-      - name: LLM 翻译长文本（需在 Secrets 配置 LLM_API_KEY）
-        if: ${{ secrets.LLM_API_KEY != '' }}
+      - name: LLM 翻译长文本（未配置 LLM_API_KEY 时自动跳过）
         run: |
-          python -c "from crawler.llm import translate_all_fields; print(translate_all_fields(db_path='data/dbd_cn.db'))"
+          python - <<'PY'
+          from crawler.llm import API_KEY, translate_all_fields
+          if not API_KEY:
+              print("LLM_API_KEY 未配置，跳过翻译")
+          else:
+              print(translate_all_fields(db_path="data/dbd_cn.db"))
+          PY
         env:
           LLM_BASE_URL: ${{ vars.LLM_BASE_URL || 'https://api.inferaiapi.com/v1' }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
