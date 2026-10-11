@@ -111,9 +111,19 @@ jobs:
         env:
           DB_TZ: UTC
 
-      - name: 抓取图标（仅补缺失）
+      - name: 抓取图标（仅补新增素材；失败不阻断部署）
         run: |
-          python -c "from crawler.icons import fetch_icons; print(fetch_icons(db_path='data/dbd_cn.db'))"
+          python - <<'PY'
+          import logging
+          from crawler.icons import fetch_icons
+          logging.basicConfig(level=logging.WARNING)
+          try:
+              print(fetch_icons(db_path="data/dbd_cn.db"))
+          except Exception as exc:
+              # GitHub 共享出口 IP 常被 wiki.gg 限流；历史图标已入库，
+              # 仅新条目可能缺图，不应阻断同步与部署
+              print("图标抓取跳过:", exc)
+          PY
 
       - name: LLM 翻译长文本（未配置 LLM_API_KEY 时自动跳过）
         run: |

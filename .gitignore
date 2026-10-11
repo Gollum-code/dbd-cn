@@ -13,9 +13,10 @@ crawler/llm_state*.json
 
 # Data / generated site
 data/*.db-journal
-data/icons/
 site/
 *.db-journal
+# NOTE: data/icons/ (1396 张素材, ~46MB) 有意纳入版本控制，
+# 以便 clone 即用、GitHub Pages 部署后站点带图标。
 
 # Node / assistant
 node_modules/

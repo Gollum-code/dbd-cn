@@ -161,6 +161,22 @@ def render_site(
     sync = dict(conn.execute("SELECT key,value FROM sync_meta").fetchall())
     char_by_id = {c["id"]: c for c in killers + survivors}
 
+    # Drop icon references whose file is missing on disk so a partial icon
+    # fetch (e.g. rate-limited in CI) degrades to the text placeholder
+    # instead of rendering broken images.
+    icon_root = Path(db_path).parent / "icons"
+    if not icon_root.exists():
+        for table, rows in (("perks", perks), ("addons", addons), ("characters", killers + survivors)):
+            for row in rows:
+                row["icon"] = None
+    else:
+        def _has_icon(row: dict) -> bool:
+            rel = row.get("icon")
+            return bool(rel) and (icon_root / rel.replace("icons/", "", 1)).exists()
+        for row in perks + addons + killers + survivors:
+            if not _has_icon(row):
+                row["icon"] = None
+
     sitemap: list[str] = []
 
     # index
