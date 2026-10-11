@@ -25,9 +25,12 @@ impl Recommender {
         playstyle: &str,
     ) -> Vec<Recommendation> {
         let weights = weights_for(playstyle);
+        // A character can use its own perks plus the universal pool
+        // (wiki.gg marks universal perks with owner "K00" / "S00").
+        let universal_owner = if character.role == "killer" { "K00" } else { "S00" };
         let owned: Vec<&Perk> = perks
             .iter()
-            .filter(|p| p.owner == character.id)
+            .filter(|p| p.owner == character.id || p.owner == universal_owner)
             .collect();
 
         let mut scored: Vec<(f64, &Perk)> = owned
@@ -56,14 +59,15 @@ impl Recommender {
             })
             .collect();
 
-        // Fill remaining slots from universal/teachable perks when the
-        // character has fewer than 4 matching ones.
+        // Fill any remaining slots from the universal pool.  We deliberately
+        // do NOT fall back to another character's exclusive perks — those are
+        // unusable in game.
         if out.len() < 4 {
             let used: std::collections::HashSet<&str> =
                 out.iter().map(|r| r.perk_id.as_str()).collect();
             let mut pool: Vec<&Perk> = perks
                 .iter()
-                .filter(|p| p.owner != character.id && !used.contains(p.id.as_str()))
+                .filter(|p| p.owner == universal_owner && !used.contains(p.id.as_str()))
                 .collect();
             pool.sort_by(|a, b| {
                 let sa = score_tags(&parse_tags(&a.tags), &weights);
@@ -77,7 +81,7 @@ impl Recommender {
                     name_en: p.name_en.clone(),
                     name_zh: p.name_zh.clone(),
                     score,
-                    reason: format!("补充位（{}）", reason_for(playstyle, &p.tags)),
+                    reason: format!("通用位（{}）", reason_for(playstyle, &p.tags)),
                 });
             }
         }
@@ -229,13 +233,16 @@ mod tests {
     fn fills_with_universal_when_no_matching() {
         let perks = vec![
             perk("a", "K01", r#"["Nonexistent"]"#),
-            perk("u1", "S00", r#"["General"]"#),
-            perk("u2", "S00", r#"["General"]"#),
+            perk("u1", "K00", r#"["General"]"#),
+            perk("u2", "K00", r#"["General"]"#),
+            // another killer's exclusive perk must NOT be pulled in
+            perk("other", "K02", r#"["General"]"#),
         ];
         let recs = Recommender::recommend(&trapper(), &perks, "信息/侦查");
-        // no owned match, so filled from universal perks
+        // no owned match, so filled from the killer universal pool only
         assert_eq!(recs.len(), 2);
         assert!(recs.iter().all(|r| r.perk_id.starts_with('u')));
+        assert!(!recs.iter().any(|r| r.perk_id == "other"));
     }
 
     #[test]

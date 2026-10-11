@@ -15,7 +15,7 @@ async function iconUrl(path) {
   if (!path) return "";
   if (IS_TAURI) {
     const { convertFileSrc } = await import("@tauri-apps/api/core");
-    const { resourceDir, appDataDir, join } = await import("@tauri-apps/api/path");
+    const { resourceDir, join } = await import("@tauri-apps/api/path");
     // Icons ship with the bundle (read-only is fine for reading).
     const base = await resourceDir();
     const file = await join(base, "data", "icons", path.replace("icons/", ""));

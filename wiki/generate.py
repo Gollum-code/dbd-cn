@@ -140,16 +140,21 @@ def render_site(
                    "黎明杀机,DBD,杀手,逃生者,角色图鉴")))
         sitemap.append(page)
 
-    # character detail
+# character detail
+    universal = {
+        "killer": [p for p in perks if p["owner"] == "K00"],
+        "survivor": [p for p in perks if p["owner"] == "S00"],
+    }
     for ch in killers + survivors:
         owner = ch["id"]
         owned_perks = [p for p in perks if p["owner"] == owner]
         owned_addons = [a for a in addons if a["owner"] == owner]
         realm = next((r for r in realms if r["id"] == ch.get("realm_id")), None)
         name = ch["name_zh"] or ch["name_en"]
-        page = out_dir / f"character/{ch['id']}.html"
+        page = out_dir / "character" / f"{ch['id']}.html"
         _w(page, env.get_template("character.html").render(
             ch=ch, perks=owned_perks, addons=owned_addons, realm=realm, sync=sync,
+            universal_perks=universal[ch["role"]],
             base=_base_url(page, out_dir),
             **_seo(f"{name} - 黎明杀机中文Wiki",
                    f"黎明杀机角色『{name}』资料：{'背景故事、能力与' if ch['role']=='killer' else ''}专属技能、附加品。")) )

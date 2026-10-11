@@ -54,6 +54,19 @@
   {% endfor %}
 </div>
 
+{% if universal_perks %}
+<h2>通用技能 <small class="sub">任意{{ '杀手' if ch.role == 'killer' else '逃生者' }}均可使用</small></h2>
+<div class="perk-grid">
+  {% for p in universal_perks %}
+  <a class="perk-card" href="../perk/{{ p.id }}.html">
+    {% if p.icon %}<img class="perk-icon" src="{{ p.icon|icon_url(base) }}" alt="{{ p.name_en }}" loading="lazy">{% endif %}
+    <div class="name">{{ p.name_zh or p.name_en }}</div>
+    <div class="en">{{ p.name_en }}</div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
 <h2>附加品</h2>
 <ul class="plain">
   {% for a in addons %}

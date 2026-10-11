@@ -199,15 +199,21 @@ npm run tauri build
 
 > ⚠️ `.env` 含密钥，已被 `.gitignore` 忽略；仓库只提交 `.env.example` 模板。
 
-## 测试
+## 测试与代码质量
 
 ```bash
-# Python 爬虫 / 解析 / 翻译 / 校对队列 / HTML 抽取 测试（31 项）
+# Python 单元 + 端到端测试（48 项）
 python -m pytest tests -q
+python -m ruff check .
 
-# Rust 构筑推荐引擎测试（4 项）
-cd assistant/src-tauri && cargo test
+# Rust 测试（14 项）+ 静态检查
+cd assistant/src-tauri
+cargo test --lib
+cargo clippy --lib -- -D warnings
 ```
+
+CI（`.github/workflows/weekly-sync.yml`）的 `test` job 会依次执行
+ruff → pytest → 前端构建 → clippy → cargo test，**全部通过才允许同步与部署**。
 
 ## 里程碑
 

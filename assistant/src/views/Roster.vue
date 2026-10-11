@@ -93,7 +93,9 @@ async function applyFocus() {
 const shown = computed(() => chars.value.filter((c) => c.role === tab.value));
 
 function ownedPerks(charId) {
-  return perks.value.filter((p) => p.owner === charId);
+  const c = chars.value.find((x) => x.id === charId);
+  const universal = c ? (c.role === "killer" ? "K00" : "S00") : "";
+  return perks.value.filter((p) => p.owner === charId || p.owner === universal);
 }
 </script>
 

@@ -43,6 +43,10 @@ jobs:
         run: npm ci
         working-directory: assistant
 
+      - name: Lint (eslint)
+        run: npm run lint
+        working-directory: assistant
+
       - name: 构建前端
         run: npm run build
         working-directory: assistant

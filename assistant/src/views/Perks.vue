@@ -158,6 +158,9 @@ function tiers(p) {
   } catch { return []; }
 }
 function ownerOf(p) {
+  // wiki marks universal perks with owner K00 / S00
+  if (p.owner === "K00") return "通用（杀手）";
+  if (p.owner === "S00") return "通用（逃生者）";
   const c = chars.value.find((c) => c.id === p.owner);
   return c ? c.name_zh || c.name_en : "";
 }
