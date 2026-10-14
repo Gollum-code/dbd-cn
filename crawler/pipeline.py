@@ -368,7 +368,11 @@ def load_into_db(conn, *, characters, perks, addons, maps, realms, patches=None)
                VALUES (?,?,?,?,?)
                ON CONFLICT(id) DO UPDATE SET
                  patch=excluded.patch,rdate=excluded.rdate,
-                 ptb=excluded.ptb,notes=excluded.notes""",
+                 ptb=excluded.ptb,
+                 -- only overwrite notes when the source actually has one;
+                 -- otherwise a plain rebuild would wipe translated summaries
+                 notes=CASE WHEN TRIM(excluded.notes)!=''
+                             THEN excluded.notes ELSE patches.notes END""",
             (p["id"], p["patch"], p.get("rdate"), p.get("ptb", 0),
              p.get("notes", "")),
         )

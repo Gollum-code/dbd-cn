@@ -1,43 +1,108 @@
 {% extends "base.html" %}
-{% block title %}黎明杀机 中文 Wiki - 首页{% endblock %}
+{% block title %}黎明杀机中文Wiki - 杀手/逃生者/技能/附加品/地图中文资料站{% endblock %}
 {% block content %}
+
 <section class="hero">
-  <h1>黎明杀机中文资料站</h1>
-  <p class="sub">免费 · 开源 · 每周自动同步官方数据</p>
+  <p class="eyebrow">非官方 · 开源 · 每周自动同步</p>
+  <h1>黎明杀机<span class="zh">中文资料站</span></h1>
+  <p class="sub">98 名角色、{{ perks|length }} 个技能、{{ total_addons }} 件附加品的完整中文数据，
+     来自 <a href="https://deadbydaylight.wiki.gg" target="_blank" rel="noopener nofollow">deadbydaylight.wiki.gg</a>。</p>
+
+  <form class="hero-search" action="{{ base }}search.html" method="get">
+    <input type="search" name="q" placeholder="搜索角色、技能效果、附加品… 支持中文关键词" aria-label="站内搜索">
+    <button type="submit">搜索</button>
+  </form>
+
   {% if patches %}
   <div class="patch-banner">
-    最新版本 <strong>{{ patches[0].patch }}</strong>
+    <span class="lbl">最新版本</span>
+    <strong>{{ patches[0].patch }}</strong>
     {% if patches[0].rdate %}<span class="date">{{ patches[0].rdate }}</span>{% endif %}
     {% if patches[0].ptb %}<span class="ptb">PTB</span>{% endif %}
-    <a href="changelog.html">查看更新日志 →</a>
+    <a href="changelog.html">更新日志 →</a>
   </div>
   {% endif %}
-  <div class="stats">
-    <div class="stat"><span>{{ killers|length }}</span>杀手</div>
-    <div class="stat"><span>{{ survivors|length }}</span>逃生者</div>
-    <div class="stat"><span>{{ perks|length }}</span>技能</div>
-    <div class="stat"><span>{{ realms|length }}</span>领域</div>
-  </div>
+
+  <ul class="stats">
+    <li><span>{{ killers|length }}</span>杀手</li>
+    <li><span>{{ survivors|length }}</span>逃生者</li>
+    <li><span>{{ perks|length }}</span>技能</li>
+    <li><span>{{ total_addons }}</span>附加品</li>
+    <li><span>{{ realms|length }}</span>领域</li>
+    <li><span>{{ total_maps }}</span>地图</li>
+  </ul>
 </section>
 
+{% if featured_killers %}
+<section class="strip">
+  <div class="strip-head">
+    <h2> killers<span>杀手</span></h2>
+    <a href="roster/killers.html">全部 {{ killers|length }} 名 →</a>
+  </div>
+  <div class="strip-grid">
+    {% for c in featured_killers %}
+    <a class="portrait" href="character/{{ c.id }}.html">
+      <img src="{{ c.icon|icon_url(base) }}" alt="{{ c.name_en }}" loading="lazy" decoding="async" width="220" height="293">
+      <span class="cap"><b>{{ c.name_zh or c.name_en }}</b><em>{{ c.name_en }}</em></span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if featured_survivors %}
+<section class="strip">
+  <div class="strip-head">
+    <h2>survivors<span>逃生者</span></h2>
+    <a href="roster/survivors.html">全部 {{ survivors|length }} 名 →</a>
+  </div>
+  <div class="strip-grid">
+    {% for c in featured_survivors %}
+    <a class="portrait" href="character/{{ c.id }}.html">
+      <img src="{{ c.icon|icon_url(base) }}" alt="{{ c.name_en }}" loading="lazy" decoding="async" width="220" height="293">
+      <span class="cap"><b>{{ c.name_zh or c.name_en }}</b><em>{{ c.name_en }}</em></span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 <section class="cards">
-  <a class="card" href="roster/killers.html">
-    <h2>杀手图鉴</h2><p>难度 / 移速 / 恐惧范围 / 能力</p>
-  </a>
-  <a class="card" href="roster/survivors.html">
-    <h2>逃生者图鉴</h2><p>背景 / 特长 / 专属技能</p>
-  </a>
   <a class="card" href="perks.html">
-    <h2>技能大全</h2><p>中文描述 / 三档数值 / 所属角色</p>
+    <h2>技能大全</h2><p>中文描述 · 三档数值 · 所属角色</p>
   </a>
   <a class="card" href="addons.html">
-    <h2>附加品</h2><p>中文效果 / 稀有度</p>
+    <h2>附加品</h2><p>中文效果 · 稀有度 · {{ total_addons }} 件</p>
   </a>
   <a class="card" href="maps.html">
-    <h2>地图与领域</h2><p>请用地形 / 领域汇总</p>
+    <h2>地图与领域</h2><p>领域归属 · 钩点图腾点 · 版本变化</p>
   </a>
   <a class="card" href="builds.html">
-    <h2>构筑推荐</h2><p>社区构筑（中文）</p>
+    <h2>构筑推荐</h2><p>杀手 / 逃生者主流玩法搭配</p>
+  </a>
+  <a class="card" href="changelog.html">
+    <h2>更新日志</h2><p>{{ patches|length }} 个补丁的中文说明</p>
+  </a>
+  <a class="card" href="search.html">
+    <h2>高级搜索</h2><p>按类别筛选 · 效果关键词检索</p>
   </a>
 </section>
+
+{% if latest_patch_notes %}
+<section class="notes">
+  <h2>近期更新</h2>
+  <ul>
+    {% for p in latest_patch_notes %}
+    <li>
+      <a href="changelog.html"><b>{{ p.patch }}</b>{% if p.rdate %}<em>{{ p.rdate }}</em>{% endif %}</a>
+      <p>{{ p.notes[:180] }}{% if p.notes|length > 180 %}…{% endif %}</p>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<p class="disclaimer">
+  本站为非官方粉丝项目，与 Behaviour Interactive 无任何关联。角色、名称与图标等素材版权归其发行商与开发者所有。
+</p>
 {% endblock %}

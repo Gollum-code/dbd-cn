@@ -2,7 +2,7 @@
 {% block title %}{{ ch.name_zh or ch.name_en }} - DBD 中文 Wiki{% endblock %}
 {% block content %}
 <div class="char-head">
-  {% if ch.icon %}<img class="char-portrait" src="{{ ch.icon|icon_url(base) }}" alt="{{ ch.name_en }}">{% endif %}
+  {% if ch.icon %}<img class="char-portrait" src="{{ ch.icon|icon_url(base) }}" alt="{{ ch.name_en }}" width="220" height="293" decoding="async">{% endif %}
   <div>
     <h1>{{ ch.name_zh or ch.name_en }} <small>{{ ch.name_en }}</small></h1>
     <div class="char-detail">

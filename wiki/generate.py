@@ -180,10 +180,26 @@ def render_site(
     sitemap: list[str] = []
 
     # index
+    # Featured rows for the landing page: a spread of killers and survivors
+    # that actually have a portrait, so the hero never shows broken images.
+    def _featured(rows: list[dict], n: int) -> list[dict]:
+        with_icon = [r for r in rows if r.get("icon")]
+        return with_icon[:n]
+
     page = out_dir / "index.html"
     _w(page, env.get_template("index.html").render(
         killers=killers, survivors=survivors, perks=perks, maps=maps, realms=realms,
         patches=patches, sync=sync, base=_base_url(page, out_dir),
+        featured_killers=_featured(killers, 8),
+        featured_survivors=_featured(survivors, 8),
+        total_addons=len(addons),
+        total_maps=len(maps),
+        # newest patches that actually carry a summary (recent ones may be
+        # PTB-only with no notes yet)
+        latest_patch_notes=[
+            p for p in patches
+            if len((p.get("notes") or "").strip()) > 20
+        ][:3],
         jsonld=_jsonld_website(SITE_URL),
         **_seo("黎明杀机中文Wiki - 角色/技能/附加品/地图资料站",
                "黎明杀机（Dead by Daylight）中文资料站：杀手与逃生者图鉴、技能大全、附加品、地图领域、构筑推荐。每周自动同步官方数据。",
@@ -402,6 +418,9 @@ def _write_paginated_changelog(out_dir: Path, patches, sitemap, per_page: int = 
             next_url=(base + _page_name("changelog", n + 1) if n < pages else ""),
             base=base,
             sync={},
+            **_seo("版本更新日志 - 黎明杀机中文Wiki",
+                   "黎明杀机版本更新日志：补丁说明、PTB 测试服信息。",
+                   canonical=SITE_URL + _page_name("changelog", n)),
         ))
         sitemap.append(page)
 
@@ -446,6 +465,9 @@ def _write_paginated_addons(out_dir: Path, addons, killers, survivors, sitemap, 
             next_url=(base + _page_name("addons", n + 1) if n < pages else ""),
             base=base,
             sync={},
+            **_seo("附加品大全 - 黎明杀机中文Wiki",
+                   "黎明杀机全部附加品中文资料：中文效果、稀有度与所属角色。",
+                   canonical=SITE_URL + _page_name("addons", n)),
         ))
         sitemap.append(page)
 

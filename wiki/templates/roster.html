@@ -6,7 +6,7 @@
   {% for c in chars %}
   <a class="char-card" href="../character/{{ c.id }}.html">
     <div class="char-avatar">
-      {% if c.icon %}<img src="{{ c.icon|icon_url(base) }}" alt="{{ c.name_en }}" loading="lazy">{% else %}{{ c.name_zh or c.name_en }}{% endif %}
+      {% if c.icon %}<img src="{{ c.icon|icon_url(base) }}" alt="{{ c.name_en }}" loading="lazy" decoding="async" width="220" height="293">{% else %}{{ c.name_zh or c.name_en }}{% endif %}
     </div>
     <div class="char-meta">
       <div class="name">{{ c.name_zh or c.name_en }}</div>
